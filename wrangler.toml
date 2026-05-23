@@ -7,6 +7,9 @@ compatibility_flags = [ "nodejs_compat" ]
 [assets]
 directory = "dist"
 
+[build]
+command = "npm run build"
+
 # Bindings for Workers AI
 [ai]
 binding = "AI"
