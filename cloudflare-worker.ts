@@ -36,10 +36,31 @@ app.post('/api/chat', async (c) => {
       return c.json({ error: 'Message payload is empty.' }, 400)
     }
 
+    const systemInstruction = 'You are AI GAMMA 4, an advanced, highly intelligent artificial intelligence. You communicate clearly, concisely, and sometimes with a slightly technical undertone.';
+    
+    // Ensure the first message is a user message. 
+    // If the frontend sends the welcome 'model' greeting first, we need to handle it or inject a system-like user prompt.
+    const cleanMessages = messages[0]?.role === 'model' || messages[0]?.role === 'assistant' 
+        ? messages.slice(1) 
+        : messages;
+
+    // Map messages, replacing 'model' with 'assistant'
+    // and merging the system instruction into the first user prompt.
+    const mappedMessages = cleanMessages.map((m: any, index: number) => {
+      let content = m.content;
+      if (index === 0 && m.role === 'user') {
+        content = `${systemInstruction}\n\nUser: ${m.content}`;
+      }
+      return {
+        role: m.role === 'model' ? 'assistant' : m.role,
+        content: content
+      };
+    });
+
     // Menggunakan model Gemma 7B dari Cloudflare Workers AI
     // Ini berjalan di jaringan Cloudflare dan masuk tier gratis mereka.
-    const responseStream = await c.env.AI.run('@cf/google/gemma-7b-it', {
-      messages: messages,
+    const responseStream = await c.env.AI.run('@cf/google/gemma-7b-it-lora', {
+      messages: mappedMessages,
       stream: true,
     });
 
@@ -53,7 +74,7 @@ app.post('/api/chat', async (c) => {
 
   } catch (err: any) {
     console.error('API Chat route error:', err);
-    return c.json({ error: 'Internal Server Error', details: err.message }, 500)
+    return c.json({ error: `Cloudflare AI Error: ${err.message || String(err)}` }, 500)
   }
 })
 
