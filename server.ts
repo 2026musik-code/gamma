@@ -8,6 +8,96 @@ async function startServer() {
 
   app.use(express.json());
 
+  // YouTube Search API
+  app.get("/api/youtube/search", async (req, res) => {
+    try {
+      const { q } = req.query;
+      const apiKey = process.env.YOUTUBE_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(401).json({ 
+          error: "API Key is missing. Please add your YOUTUBE_API_KEY to the Secrets panel." 
+        });
+      }
+
+      if (!q) {
+        return res.status(400).json({ error: "Search query is required." });
+      }
+
+      // Fetch from YouTube Data API v3
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=${encodeURIComponent(
+          q as string
+        )}&type=video&key=${apiKey}`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "YouTube API error");
+      }
+
+      res.json(data);
+    } catch (error: any) {
+      console.error("Error fetching YouTube data:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Server-side searching of YouTube using yt-search
+  app.get("/api/search", async (req, res) => {
+    try {
+      const { q } = req.query;
+      
+      if (!q) {
+        return res.status(400).json({ error: "Search query is required." });
+      }
+
+      const ytSearch = (await import("yt-search")).default;
+      const opts = {
+        query: req.query.q as string,
+        pageStart: 1,
+        pageEnd: 1,
+      };
+
+      const result = await ytSearch(opts);
+      
+      // Map it to match what the frontend expects or we can just send the raw result
+      // But the frontend currently expects `data.items` shaped like piped API.
+      // Wait, let's just shape it. Frontend expects:
+      /*
+        {
+          items: [
+            {
+              url: "/watch?v=...",
+              duration: seconds, // integer
+              views: number,
+              title: string,
+              uploaderName: string,
+              uploadedDate: string,
+              thumbnail: string
+            }
+          ]
+        }
+      */
+      
+      const mappedVideos = result.videos.map(v => ({
+        url: v.url,
+        duration: v.duration.seconds,
+        views: v.views,
+        title: v.title,
+        uploaderName: v.author.name,
+        uploadedDate: v.ago,
+        thumbnail: v.thumbnail,
+      }));
+
+      res.json({ items: mappedVideos });
+    } catch (error: any) {
+      console.error("Error fetching YouTube data via proxy:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Local Preview Mock - simulates streaming response without needing a key
   app.post("/api/chat", async (req, res) => {
     try {

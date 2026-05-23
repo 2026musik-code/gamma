@@ -9,9 +9,9 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-emerald-900/50 rounded-full;
+    @apply bg-neutral-700/50 rounded-full;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-emerald-700/50;
+    @apply bg-neutral-600/50;
   }
 }

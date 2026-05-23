@@ -27,6 +27,40 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('/api/*', cors())
 
+app.get('/api/search', async (c) => {
+  try {
+    const q = c.req.query('q');
+    
+    if (!q) {
+      return c.json({ error: "Search query is required." }, 400);
+    }
+
+    // Server-side searching of YouTube using yt-search
+    const ytSearch = (await import("yt-search")).default;
+    const opts = {
+      query: q as string,
+      pageStart: 1,
+      pageEnd: 1,
+    };
+
+    const result = await ytSearch(opts);
+    
+    const mappedVideos = result.videos.map((v: any) => ({
+      url: v.url,
+      duration: v.duration.seconds,
+      views: v.views,
+      title: v.title,
+      uploaderName: v.author.name,
+      uploadedDate: v.ago,
+      thumbnail: v.thumbnail,
+    }));
+
+    return c.json({ items: mappedVideos });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+})
+
 app.post('/api/chat', async (c) => {
   try {
     const body = await c.req.json()

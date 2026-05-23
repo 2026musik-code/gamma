@@ -1,6 +1,6 @@
 {
-  "name": "AI GAMMA 4",
-  "description": "AI Chat Application powered by Gemini API, designed for deployment on Cloudflare Workers with Hono.",
+  "name": "YouTube V",
+  "description": "A modern video application interface with a dark theme.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
