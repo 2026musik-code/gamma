@@ -35,25 +35,42 @@ app.get('/api/search', async (c) => {
       return c.json({ error: "Search query is required." }, 400);
     }
 
-    // Server-side searching of YouTube using yt-search
-    const ytSearch = (await import("yt-search")).default;
-    const opts = {
-      query: q as string,
-      pageStart: 1,
-      pageEnd: 1,
-    };
+    // Fetch directly from YouTube using Cloudflare's native fetch
+    const response = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(q as string)}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept-Language": "id-ID,id;q=0.9",
+      }
+    });
 
-    const result = await ytSearch(opts);
+    if (!response.ok) {
+      return c.json({ error: "Failed to fetch from YouTube" }, 502);
+    }
+
+    const html = await response.text();
+    const match = html.match(/ytInitialData\s*=\s*({.+?});/);
     
-    const mappedVideos = result.videos.map((v: any) => ({
-      url: v.url,
-      duration: v.duration.seconds,
-      views: v.views,
-      title: v.title,
-      uploaderName: v.author.name,
-      uploadedDate: v.ago,
-      thumbnail: v.thumbnail,
-    }));
+    if (!match) {
+      return c.json({ error: "Failed to parse YouTube data" }, 500);
+    }
+
+    const ytData = JSON.parse(match[1]);
+    const items = ytData.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents || [];
+
+    const mappedVideos = items
+      .filter((item: any) => item.videoRenderer)
+      .map((item: any) => {
+        const v = item.videoRenderer;
+        return {
+          url: `/watch?v=${v.videoId}`,
+          duration: v.lengthText?.simpleText || "0:00",
+          views: v.viewCountText?.simpleText || "0 views",
+          title: v.title?.runs?.[0]?.text || "",
+          uploaderName: v.ownerText?.runs?.[0]?.text || "",
+          uploadedDate: v.publishedTimeText?.simpleText || "",
+          thumbnail: v.thumbnail?.thumbnails?.[0]?.url || "",
+        };
+      });
 
     return c.json({ items: mappedVideos });
   } catch (err: any) {

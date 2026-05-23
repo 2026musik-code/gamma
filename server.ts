@@ -44,7 +44,7 @@ async function startServer() {
     }
   });
 
-  // Server-side searching of YouTube using yt-search
+  // Server-side searching of YouTube using native fetch (same as worker)
   app.get("/api/search", async (req, res) => {
     try {
       const { q } = req.query;
@@ -53,43 +53,41 @@ async function startServer() {
         return res.status(400).json({ error: "Search query is required." });
       }
 
-      const ytSearch = (await import("yt-search")).default;
-      const opts = {
-        query: req.query.q as string,
-        pageStart: 1,
-        pageEnd: 1,
-      };
-
-      const result = await ytSearch(opts);
-      
-      // Map it to match what the frontend expects or we can just send the raw result
-      // But the frontend currently expects `data.items` shaped like piped API.
-      // Wait, let's just shape it. Frontend expects:
-      /*
-        {
-          items: [
-            {
-              url: "/watch?v=...",
-              duration: seconds, // integer
-              views: number,
-              title: string,
-              uploaderName: string,
-              uploadedDate: string,
-              thumbnail: string
-            }
-          ]
+      const response = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(q as string)}`, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Accept-Language": "id-ID,id;q=0.9",
         }
-      */
+      });
+
+      if (!response.ok) {
+        return res.status(502).json({ error: "Failed to fetch from YouTube" });
+      }
+
+      const html = await response.text();
+      const match = html.match(/ytInitialData\s*=\s*({.+?});/);
       
-      const mappedVideos = result.videos.map(v => ({
-        url: v.url,
-        duration: v.duration.seconds,
-        views: v.views,
-        title: v.title,
-        uploaderName: v.author.name,
-        uploadedDate: v.ago,
-        thumbnail: v.thumbnail,
-      }));
+      if (!match) {
+        return res.status(500).json({ error: "Failed to parse YouTube data" });
+      }
+
+      const ytData = JSON.parse(match[1]);
+      const items = ytData.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents || [];
+
+      const mappedVideos = items
+        .filter((item: any) => item.videoRenderer)
+        .map((item: any) => {
+          const v = item.videoRenderer;
+          return {
+            url: `/watch?v=${v.videoId}`,
+            duration: v.lengthText?.simpleText || "0:00",
+            views: v.viewCountText?.simpleText || "0 views",
+            title: v.title?.runs?.[0]?.text || "",
+            uploaderName: v.ownerText?.runs?.[0]?.text || "",
+            uploadedDate: v.publishedTimeText?.simpleText || "",
+            thumbnail: v.thumbnail?.thumbnails?.[0]?.url || "",
+          };
+        });
 
       res.json({ items: mappedVideos });
     } catch (error: any) {

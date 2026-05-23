@@ -42,31 +42,13 @@ export function YouTubeV() {
           // Extract video ID from URL like "/watch?v=abc123xyz"
           const videoId = v.url.split('v=')[1]?.split('&')[0] || '';
           
-          // Format duration
-          let durationObj = "";
-          if (v.duration > 0) {
-            const date = new Date(0);
-            date.setSeconds(v.duration);
-            durationObj = date.toISOString().substring(11, 19).replace(/^00:/, '');
-            if (durationObj.startsWith('0')) durationObj = durationObj.substring(1);
-          } else {
-            durationObj = "Live";
-          }
-
-          // Format views
-          const formattedViews = v.views >= 1000000 
-            ? (v.views / 1000000).toFixed(1) + 'M' 
-            : v.views >= 1000 
-              ? (v.views / 1000).toFixed(1) + 'K' 
-              : v.views;
-
           return {
             id: videoId,
             title: v.title,
             channel: v.uploaderName,
-            views: formattedViews,
+            views: v.views,
             time: v.uploadedDate || 'Baru saja',
-            duration: durationObj,
+            duration: typeof v.duration === 'string' ? v.duration : 'Live',
             thumbnail: v.thumbnail,
           };
         }).filter((v: VideoData) => v.id); // Only keep items with a valid ID
