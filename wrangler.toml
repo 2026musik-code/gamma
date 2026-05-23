@@ -1,8 +1,13 @@
-name = "gamma"
+name = "ai-gamma-4"
 main = "cloudflare-worker.ts"
 compatibility_date = "2024-03-20"
 compatibility_flags = [ "nodejs_compat" ]
 
+# Tell Cloudflare to serve the frontend files from the dist directory
+[assets]
+directory = "dist"
+
 # Bindings for Workers AI
 [ai]
 binding = "AI"
+
