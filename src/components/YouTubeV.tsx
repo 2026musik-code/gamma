@@ -492,8 +492,8 @@ export function YouTubeV() {
               // BROWSE VIEW
               <div className="flex flex-col h-full w-full">
                 {/* Header & Search */}
-                <div className="p-5 pt-8 bg-gradient-to-b from-green-100/90 to-transparent z-10 sticky top-0">
-                  <div className="flex items-center gap-4 mb-6">
+                <div className="p-4 pt-5 bg-gradient-to-b from-green-100/90 to-transparent z-10 sticky top-0">
+                  <div className="flex items-center gap-4 mb-3">
                     <button 
                       onClick={() => setShowMusic(false)} 
                       className="p-2 hover:bg-black/5 rounded-full transition-colors cursor-pointer"
@@ -517,33 +517,33 @@ export function YouTubeV() {
                   </form>
                 </div>
 
-                <div className="flex-1 overflow-y-auto no-scrollbar pb-32 px-5">
+                <div className="flex-1 overflow-y-auto no-scrollbar pb-32 px-4">
                   {isSearchingMusic || isLoadingMusic ? (
-                    <div className="h-40 flex items-center justify-center">
+                    <div className="h-20 flex items-center justify-center">
                       <Loader2 className="w-8 h-8 animate-spin text-green-600" />
                     </div>
                   ) : searchMusicResults.length > 0 ? (
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
                       <h3 className="font-bold text-green-950 text-lg font-display mb-2">Hasil Pencarian</h3>
                       {searchMusicResults.map((music) => (
                         <div 
                           key={music.id} 
-                          className="flex items-center gap-4 cursor-pointer group p-2 hover:bg-green-200/50 rounded-2xl transition-all"
+                          className="flex items-center gap-3 cursor-pointer group p-2 hover:bg-green-200/50 rounded-2xl transition-all"
                           onClick={() => {
                             setActiveMusic(music);
                             setMusicList(searchMusicResults);
                             setIsMusicPlayerOpen(true);
                           }}
                         >
-                          <div className="w-16 h-16 rounded-xl overflow-hidden shadow-md relative">
+                          <div className="w-14 h-14 rounded-xl overflow-hidden shadow-md relative">
                             <img src={music.thumbnail} alt={music.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                             <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Play className="w-6 h-6 text-white fill-current" />
+                              <Play className="w-5 h-5 text-white fill-current" />
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-green-950 font-semibold truncate text-[16px] mb-1 group-hover:text-green-700 transition-colors">{music.title}</p>
-                            <p className="text-green-800/70 text-[14px] truncate">{music.channel}</p>
+                            <p className="text-green-950 font-semibold truncate text-[15px] mb-0.5 group-hover:text-green-700 transition-colors">{music.title}</p>
+                            <p className="text-green-800/70 text-[13px] truncate">{music.channel}</p>
                           </div>
                         </div>
                       ))}
@@ -551,20 +551,20 @@ export function YouTubeV() {
                   ) : (
                     <>
                       {/* Trending Horizontal Cards */}
-                      <div className="mb-10">
-                        <h3 className="font-bold text-green-950 text-xl font-display mb-4">Sedang Tren</h3>
-                        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-5 px-5 snap-x">
+                      <div className="mb-6">
+                        <h3 className="font-bold text-green-950 text-xl font-display mb-3">Sedang Tren</h3>
+                        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 snap-x">
                           {trendingMusic.map((music) => (
                             <div 
                               key={music.id} 
-                              className="w-[280px] shrink-0 cursor-pointer group snap-center"
+                              className="w-[260px] shrink-0 cursor-pointer group snap-center"
                               onClick={() => {
                                 setActiveMusic(music);
                                 setMusicList(trendingMusic);
                                 setIsMusicPlayerOpen(true);
                               }}
                             >
-                              <div className="w-full aspect-[4/3] rounded-3xl overflow-hidden mb-4 relative shadow-lg">
+                              <div className="w-full aspect-[4/3] rounded-3xl overflow-hidden relative shadow-md border border-green-200/50">
                                 <img src={music.thumbnail} alt={music.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                                 <div className="absolute bottom-4 left-4 right-4">
@@ -583,13 +583,13 @@ export function YouTubeV() {
                       </div>
 
                       {/* Viral List */}
-                      <div className="mb-8">
-                        <h3 className="font-bold text-green-950 text-xl font-display mb-4">Lagu Viral & Terpopuler</h3>
-                        <div className="flex flex-col gap-2">
+                      <div className="mb-5">
+                        <h3 className="font-bold text-green-950 text-xl font-display mb-3">Lagu Viral & Terpopuler</h3>
+                        <div className="flex flex-col gap-1.5">
                           {viralMusic.map((music, index) => (
                             <div 
                               key={music.id} 
-                              className="flex items-center gap-4 cursor-pointer group p-3 hover:bg-green-200/50 rounded-2xl transition-all"
+                              className="flex items-center gap-4 cursor-pointer group p-2 hover:bg-green-200/50 rounded-2xl transition-all"
                               onClick={() => {
                                 setActiveMusic(music);
                                 setMusicList(viralMusic);
@@ -653,6 +653,7 @@ export function YouTubeV() {
                           videoId={activeMusic.id} 
                           opts={{ height: '10', width: '10', playerVars: { autoplay: 1, playsinline: 1 } }}
                           onReady={(e) => setMusicPlayer(e.target)}
+                          onError={(e) => console.log('YT Error', e)}
                           onStateChange={(e) => {
                             if (e.data === 0) {
                               const currentIndex = musicList.findIndex(m => m.id === activeMusic.id);
@@ -708,6 +709,7 @@ export function YouTubeV() {
                       onReady={(e) => {
                         setMusicPlayer(e.target);
                       }}
+                      onError={(e) => console.log('YT Error', e)}
                       onStateChange={(e) => {
                         if (e.data === 0) { // ENDED
                           const currentIndex = musicList.findIndex(m => m.id === activeMusic?.id);
