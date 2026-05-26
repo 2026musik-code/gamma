@@ -74,20 +74,57 @@ async function startServer() {
       const ytData = JSON.parse(match[1]);
       const items = ytData.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents || [];
 
-      const mappedVideos = items
-        .filter((item: any) => item.videoRenderer)
-        .map((item: any) => {
+      let mappedVideos: any[] = [];
+      
+      items.forEach((item: any) => {
+        if (item.videoRenderer) {
           const v = item.videoRenderer;
-          return {
-            url: `/watch?v=${v.videoId}`,
+          mappedVideos.push({
+            id: v.videoId,
             duration: v.lengthText?.simpleText || "0:00",
             views: v.viewCountText?.simpleText || "0 views",
             title: v.title?.runs?.[0]?.text || "",
-            uploaderName: v.ownerText?.runs?.[0]?.text || "",
-            uploadedDate: v.publishedTimeText?.simpleText || "",
-            thumbnail: v.thumbnail?.thumbnails?.[0]?.url || "",
-          };
-        });
+            channel: v.ownerText?.runs?.[0]?.text || "",
+            time: v.publishedTimeText?.simpleText || "",
+            thumbnail: v.thumbnail?.thumbnails?.[v.thumbnail?.thumbnails?.length - 1]?.url || v.thumbnail?.thumbnails?.[0]?.url || "",
+          });
+        } else if (item.reelShelfRenderer) {
+          item.reelShelfRenderer.items?.forEach((reelItem: any) => {
+            if (reelItem.reelItemRenderer) {
+              const r = reelItem.reelItemRenderer;
+              mappedVideos.push({
+                id: r.videoId,
+                duration: "Shorts",
+                views: r.viewCountText?.simpleText || "0 views",
+                title: r.headline?.simpleText || "",
+                channel: r.channelText?.runs?.[0]?.text || "Shorts",
+                time: "",
+                thumbnail: r.thumbnail?.thumbnails?.[r.thumbnail?.thumbnails?.length - 1]?.url || r.thumbnail?.thumbnails?.[0]?.url || "",
+              });
+            }
+          });
+        } else if (item.gridShelfViewModel) {
+          item.gridShelfViewModel.contents?.forEach((c: any) => {
+            const s = c.shortsLockupViewModel;
+            if (s) {
+              const videoId = s.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId;
+              const title = s.overlayMetadata?.primaryText?.content || s.accessibilityText;
+              // Accessibility text usually has views, let's extract them
+              const viewsMatch = s.accessibilityText?.match(/,\s*(.+?)\s*-\s*putar/);
+              const views = viewsMatch ? viewsMatch[1] : "0 ditonton";
+              mappedVideos.push({
+                id: videoId,
+                duration: "Shorts",
+                views: views,
+                title: title,
+                channel: "Shorts",
+                time: "",
+                thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+              });
+            }
+          });
+        }
+      });
 
       res.json({ items: mappedVideos });
     } catch (error: any) {
