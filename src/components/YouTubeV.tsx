@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Menu, Mic, Bell, Video, CircleUser, Play, Home, Compass, PlaySquare, Clock, ThumbsUp, History, Loader2, ArrowLeft, MoreHorizontal, Share2, Download, ThumbsDown, ChevronDown, MessageSquare, Music, Pause, SkipForward, SkipBack } from "lucide-react";
+import { Search, Menu, Mic, Bell, Video, CircleUser, Play, Home, Compass, PlaySquare, Clock, ThumbsUp, History, Loader2, ArrowLeft, MoreHorizontal, Share2, Download, ThumbsDown, ChevronDown, MessageSquare, Music, Pause, SkipForward, SkipBack, Shuffle, Repeat, Repeat1, Volume2, VolumeX } from "lucide-react";
 import YouTube, { YouTubeProps, YouTubePlayer } from "react-youtube";
 
 type VideoData = {
@@ -33,6 +33,77 @@ export function YouTubeV() {
   const [isSearchingMusic, setIsSearchingMusic] = useState(false);
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const [musicPlayer, setMusicPlayer] = useState<YouTubePlayer | null>(null);
+  
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<0|1|2>(0);
+  const [volume, setVolume] = useState(100);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isPlayingMusic && musicPlayer) {
+      interval = setInterval(async () => {
+        try {
+          if (musicPlayer.getCurrentTime) {
+            const time = await musicPlayer.getCurrentTime();
+            setCurrentTime(time || 0);
+          }
+          if (musicPlayer.getDuration) {
+            const dur = await musicPlayer.getDuration();
+            setDuration(dur || 0);
+          }
+        } catch(e) {}
+      }, 500);
+    }
+    return () => clearInterval(interval);
+  }, [isPlayingMusic, musicPlayer]);
+
+  const formatTime = (time: number) => {
+    if (isNaN(time) || time < 0) return "0:00";
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = Number(e.target.value);
+    setCurrentTime(time);
+    if (musicPlayer && musicPlayer.seekTo) {
+      musicPlayer.seekTo(time, true);
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const vol = Number(e.target.value);
+    setVolume(vol);
+    if (musicPlayer && musicPlayer.setVolume) {
+      musicPlayer.setVolume(vol);
+    }
+  };
+ 
+  const playNextMusic = () => {
+    if (musicList.length === 0) return;
+    if (isShuffle) {
+      const randomIndex = Math.floor(Math.random() * musicList.length);
+      setActiveMusic(musicList[randomIndex]);
+    } else {
+      const currentIndex = musicList.findIndex(m => m.id === activeMusic?.id);
+      if (currentIndex < musicList.length - 1) {
+        setActiveMusic(musicList[currentIndex + 1]);
+      } else if (repeatMode !== 0) {
+        setActiveMusic(musicList[0]);
+      }
+    }
+  };
+
+  const playPrevMusic = () => {
+    if (musicList.length === 0) return;
+    const currentIndex = musicList.findIndex(m => m.id === activeMusic?.id);
+    if (currentIndex > 0) setActiveMusic(musicList[currentIndex - 1]);
+    else if (repeatMode !== 0) setActiveMusic(musicList[musicList.length - 1]);
+  };
 
   const fetchMusicDashboard = async () => {
     setIsLoadingMusic(true);
@@ -620,8 +691,9 @@ export function YouTubeV() {
 
                 {/* Mini Player */}
                 {activeMusic && (
-                  <div className="absolute bottom-4 left-4 right-4 bg-white/80 backdrop-blur-xl border border-green-200 rounded-2xl p-3 flex items-center gap-4 shadow-[0_10px_40px_rgba(0,0,0,0.1)] cursor-pointer group hover:bg-white transition-colors" onClick={() => setIsMusicPlayerOpen(true)}>
-                    <div className="w-12 h-12 rounded-lg overflow-hidden relative">
+                  <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-xl border border-green-200/60 rounded-2xl p-3 pb-1.5 flex flex-col gap-2 shadow-[0_15px_40px_rgba(0,0,0,0.15)] cursor-pointer group hover:bg-white transition-colors" onClick={() => setIsMusicPlayerOpen(true)}>
+                    <div className="flex items-center gap-4 w-full">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden relative shrink-0 shadow-sm">
                       <img src={activeMusic.thumbnail} className="w-full h-full object-cover" />
                       {!isPlayingMusic && (
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
@@ -633,7 +705,7 @@ export function YouTubeV() {
                       <p className="text-green-950 font-bold text-[14px] truncate">{activeMusic.title}</p>
                       <p className="text-green-800/80 text-[12px] truncate">{activeMusic.channel}</p>
                     </div>
-                    <div className="flex items-center gap-2 pr-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-2 pr-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                        <button 
                         onClick={() => {
                           if (musicPlayer) {
@@ -642,11 +714,16 @@ export function YouTubeV() {
                             setIsPlayingMusic(!isPlayingMusic);
                           }
                         }}
-                        className="p-2 hover:bg-green-100 rounded-full text-green-700"
+                        className="p-2 hover:bg-green-100/80 rounded-full text-green-700 transition-colors"
                       >
                         {isPlayingMusic ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current" />}
                       </button>
                     </div>
+                  </div>
+                  {/* Tiny Progress bar */}
+                  <div className="w-full h-1 bg-green-100 rounded-full overflow-hidden mb-1 mt-1">
+                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${(currentTime / (duration || 100)) * 100}%` }}></div>
+                  </div>
                      {/* Hidden YouTube Video instance to keep music playing in background */}
                      <div className="hidden">
                         <YouTube 
@@ -656,8 +733,12 @@ export function YouTubeV() {
                           onError={(e) => console.log('YT Error', e)}
                           onStateChange={(e) => {
                             if (e.data === 0) {
-                              const currentIndex = musicList.findIndex(m => m.id === activeMusic.id);
-                              if (currentIndex < musicList.length - 1) setActiveMusic(musicList[currentIndex + 1]);
+                              if (repeatMode === 2 && musicPlayer) {
+                                musicPlayer.seekTo(0);
+                                musicPlayer.playVideo();
+                              } else {
+                                playNextMusic();
+                              }
                             } else if (e.data === 1) setIsPlayingMusic(true);
                             else if (e.data === 2) setIsPlayingMusic(false);
                           }}
@@ -712,9 +793,11 @@ export function YouTubeV() {
                       onError={(e) => console.log('YT Error', e)}
                       onStateChange={(e) => {
                         if (e.data === 0) { // ENDED
-                          const currentIndex = musicList.findIndex(m => m.id === activeMusic?.id);
-                          if (currentIndex < musicList.length - 1) {
-                            setActiveMusic(musicList[currentIndex + 1]);
+                          if (repeatMode === 2 && musicPlayer) {
+                            musicPlayer.seekTo(0);
+                            musicPlayer.playVideo();
+                          } else {
+                            playNextMusic();
                           }
                         } else if (e.data === 1) { // PLAYING
                           setIsPlayingMusic(true);
@@ -733,59 +816,101 @@ export function YouTubeV() {
                   </div>
 
                   {/* Info */}
-                  <div className="flex flex-col mb-10 pointer-events-none text-center">
-                    <h3 className="text-[26px] font-bold text-green-950 line-clamp-2 leading-tight mb-3 font-display tracking-tight drop-shadow-sm">{activeMusic?.title}</h3>
-                    <p className="text-green-800 text-[17px] font-medium">{activeMusic?.channel}</p>
+                  <div className="flex flex-col mb-8 pointer-events-none text-center">
+                    <h3 className="text-[22px] font-bold text-green-950 line-clamp-2 leading-tight mb-2 font-display tracking-tight drop-shadow-sm">{activeMusic?.title}</h3>
+                    <p className="text-green-800 text-[16px] font-medium">{activeMusic?.channel}</p>
                   </div>
 
+                  {/* Timeline / Progress Bar */}
+                  <div className="flex flex-col gap-1 mb-6 px-1">
+                    <div className="flex items-center justify-between text-xs font-semibold text-green-800/80 font-mono tracking-wider mb-1">
+                      <span>{formatTime(currentTime)}</span>
+                      <span>{formatTime(duration)}</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max={duration || 100} 
+                      value={currentTime}
+                      onChange={handleSeek}
+                      className="w-full cursor-pointer accent-green-700 hover:accent-green-800 transition-all focus:outline-none h-1.5 bg-green-200/50 rounded-full appearance-auto"
+                    />
+                  </div>
+                  
                   {/* Controls */}
-                  <div className="flex items-center justify-center gap-10 mb-12">
+                  <div className="flex items-center justify-between gap-2 mb-8 px-2">
                     <button 
-                      onClick={() => {
-                        const currentIndex = musicList.findIndex(m => m.id === activeMusic?.id);
-                        if (currentIndex > 0) {
-                          setActiveMusic(musicList[currentIndex - 1]);
-                        }
-                      }}
-                      className="p-3 text-green-800/70 hover:text-green-950 transition-colors disabled:opacity-30 hover:scale-110 active:scale-95"
-                      disabled={musicList.findIndex(m => m.id === activeMusic?.id) === 0}
+                      onClick={() => setIsShuffle(!isShuffle)}
+                      className={`p-2 rounded-full transition-colors ${isShuffle ? 'text-green-800 bg-green-200/60' : 'text-green-800/40 hover:text-green-800'}`}
                     >
-                      <SkipBack className="w-9 h-9 fill-current" />
-                    </button>
-                    
-                    <button 
-                      onClick={() => {
-                        if (musicPlayer) {
-                          if (isPlayingMusic) {
-                            musicPlayer.pauseVideo();
-                          } else {
-                            musicPlayer.playVideo();
-                          }
-                          setIsPlayingMusic(!isPlayingMusic);
-                        }
-                      }}
-                      className="w-[84px] h-[84px] bg-green-700 text-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_10px_30px_rgba(21,128,61,0.4)]"
-                    >
-                      {isPlayingMusic ? <Pause className="w-10 h-10 fill-current" /> : <Play className="w-10 h-10 fill-current ml-2" />}
+                      <Shuffle className="w-5 h-5" />
                     </button>
 
+                    <div className="flex items-center gap-4">
+                      <button 
+                        onClick={playPrevMusic}
+                        className="p-2 text-green-800/70 hover:text-green-950 transition-colors hover:scale-110 active:scale-95"
+                      >
+                        <SkipBack className="w-7 h-7 fill-current" />
+                      </button>
+                      
+                      <button 
+                        onClick={() => {
+                          if (musicPlayer) {
+                            if (isPlayingMusic) {
+                              musicPlayer.pauseVideo();
+                            } else {
+                              musicPlayer.playVideo();
+                            }
+                            setIsPlayingMusic(!isPlayingMusic);
+                          }
+                        }}
+                        className="w-[64px] h-[64px] bg-green-700 text-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_10px_30px_rgba(21,128,61,0.4)]"
+                      >
+                        {isPlayingMusic ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
+                      </button>
+
+                      <button 
+                        onClick={playNextMusic}
+                        className="p-2 text-green-800/70 hover:text-green-950 transition-colors hover:scale-110 active:scale-95"
+                      >
+                        <SkipForward className="w-7 h-7 fill-current" />
+                      </button>
+                    </div>
+
+                    <button 
+                      onClick={() => setRepeatMode(prev => ((prev + 1) % 3) as 0|1|2)}
+                      className={`p-2 rounded-full transition-colors relative ${repeatMode !== 0 ? 'text-green-800 bg-green-200/60' : 'text-green-800/40 hover:text-green-800'}`}
+                    >
+                      {repeatMode === 2 ? <Repeat1 className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}
+                    </button>
+                  </div>
+
+                  {/* Volume Control */}
+                  <div className="flex items-center gap-3 px-4 mb-8">
                     <button 
                       onClick={() => {
-                        const currentIndex = musicList.findIndex(m => m.id === activeMusic?.id);
-                        if (currentIndex < musicList.length - 1) {
-                          setActiveMusic(musicList[currentIndex + 1]);
-                        }
+                        const newVol = volume === 0 ? 100 : 0;
+                        setVolume(newVol);
+                        if (musicPlayer && musicPlayer.setVolume) musicPlayer.setVolume(newVol);
                       }}
-                      className="p-3 text-green-800/70 hover:text-green-950 transition-colors disabled:opacity-30 hover:scale-110 active:scale-95"
-                      disabled={musicList.findIndex(m => m.id === activeMusic?.id) === musicList.length - 1}
+                      className="text-green-800/60 hover:text-green-800 transition-colors"
                     >
-                      <SkipForward className="w-9 h-9 fill-current" />
+                      {volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                     </button>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="100"
+                      value={volume}
+                      onChange={handleVolumeChange}
+                      className="w-full cursor-pointer accent-green-700 hover:accent-green-800 transition-all focus:outline-none h-1.5 bg-green-200/50 rounded-full appearance-auto"
+                    />
                   </div>
 
                   {/* Queue / Up Next */}
-                  <div className="flex flex-col gap-4 mt-auto bg-green-200/50 p-5 rounded-3xl border border-green-300/50 backdrop-blur-md">
-                    <h4 className="font-bold text-green-800 uppercase text-xs tracking-widest mb-1 px-1">Berikutnya</h4>
+                  <div className="flex flex-col gap-3 mt-auto bg-green-200/50 p-4 rounded-3xl border border-green-300/50 backdrop-blur-md">
+                    <h4 className="font-bold text-green-800 uppercase text-[11px] tracking-widest mb-1 px-1">Berikutnya</h4>
                     {musicList.slice(musicList.findIndex(m => m.id === activeMusic?.id) + 1, musicList.findIndex(m => m.id === activeMusic?.id) + 6).map((music) => (
                       <div 
                         key={music.id} 
