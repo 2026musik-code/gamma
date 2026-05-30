@@ -168,6 +168,8 @@ export function YouTubeV() {
 
 
 
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   const fetchVideos = async (query: string = "indonesia trending") => {
     setIsLoading(true);
     setError(null);
@@ -182,7 +184,7 @@ export function YouTubeV() {
       const data = await res.json();
       
       if (data.items && data.items.length > 0) {
-        setVideos(data.items);
+        setVideos(data.items.filter((item: VideoData) => item.duration !== "Shorts"));
         setVisibleCount(12);
       } else {
         setVideos([]);
@@ -213,12 +215,15 @@ export function YouTubeV() {
       {/* Top Navigation Bar */}
       <nav className="flex items-center justify-between px-4 h-16 shrink-0 transition-colors bg-blue-100/90 backdrop-blur-xl border-b border-blue-200 z-50 sticky top-0 shadow-sm">
         <div className="flex items-center gap-2 sm:gap-4">
-          <button className="p-2 hover:bg-black/5 rounded-full hidden sm:block transition-colors">
+          <button 
+             className="p-2 hover:bg-black/5 rounded-full hidden sm:block transition-colors"
+             onClick={() => setIsMobileSidebarOpen(true)}
+          >
             <Menu className="w-5 h-5 text-blue-900" />
           </button>
           <div 
             className="flex items-center gap-1.5 cursor-pointer select-none group" 
-            onClick={() => { setActiveVideo(null); fetchVideos("indonesia trending"); }}
+            onClick={() => setIsMobileSidebarOpen(true)}
           >
             <div className="bg-red-600 rounded-lg w-8 h-6 flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.4)] group-hover:scale-105 transition-transform duration-300">
               <Play className="w-3.5 h-3.5 text-white fill-current translate-x-[1px]" />
@@ -265,6 +270,51 @@ export function YouTubeV() {
           </button>
         </div>
       </nav>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileSidebarOpen && (
+        <div className="fixed inset-0 z-[100] flex">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          ></div>
+          
+          {/* Drawer */}
+          <div className="relative w-[280px] bg-blue-50 h-full flex flex-col shadow-2xl animate-in slide-in-from-left duration-300">
+            {/* Drawer Header */}
+            <div className="flex items-center p-4 border-b border-blue-200 gap-1.5 h-16 shrink-0">
+               <button onClick={() => setIsMobileSidebarOpen(false)} className="p-2 -ml-2 mr-2 hover:bg-black/5 rounded-full transition-colors">
+                 <Menu className="w-5 h-5 text-blue-900" />
+               </button>
+               <div 
+                  className="flex items-center gap-1.5 cursor-pointer select-none group" 
+                  onClick={() => { setActiveVideo(null); fetchVideos("indonesia trending"); setIsMobileSidebarOpen(false); }}
+                >
+                  <div className="bg-red-600 rounded-lg w-8 h-6 flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.4)] group-hover:scale-105 transition-transform duration-300">
+                    <Play className="w-3.5 h-3.5 text-white fill-current translate-x-[1px]" />
+                  </div>
+                  <span className="text-xl font-bold tracking-tight font-display text-blue-950">YouTube V</span>
+               </div>
+            </div>
+            
+            {/* Drawer Items */}
+             <div className="py-3 flex-1 overflow-y-auto">
+                <div onClick={() => setIsMobileSidebarOpen(false)}>
+                  <SidebarItem icon={<Home className="w-5 h-5" />} label="Beranda" active />
+                  <SidebarItem icon={<Compass className="w-5 h-5" />} label="Eksplorasi" />
+                  <SidebarItem icon={<PlaySquare className="w-5 h-5" />} label="Subscription" />
+                  
+                  <div className="my-3 border-t border-blue-200" />
+                  
+                  <SidebarItem icon={<History className="w-5 h-5" />} label="Histori" />
+                  <SidebarItem icon={<Clock className="w-5 h-5" />} label="Tonton Nanti" />
+                  <SidebarItem icon={<ThumbsUp className="w-5 h-5" />} label="Video yang disukai" />
+                </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
