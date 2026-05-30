@@ -24,6 +24,20 @@ export function YouTubeV() {
   const [relatedFilter, setRelatedFilter] = useState('Semua');
   const [isRelatedLoading, setIsRelatedLoading] = useState(false);
 
+  const [isSubscribed, setIsSubscribed] = useState<{ [channel: string]: boolean }>({});
+  const [likedVideos, setLikedVideos] = useState<{ [id: string]: 'like' | 'dislike' | null }>({});
+
+  const toggleSubscribe = (channel: string) => {
+    setIsSubscribed(prev => ({ ...prev, [channel]: !prev[channel] }));
+  };
+
+  const handleLike = (videoId: string, type: 'like' | 'dislike') => {
+    setLikedVideos(prev => ({
+      ...prev,
+      [videoId]: prev[videoId] === type ? null : type
+    }));
+  };
+
   const [showMusic, setShowMusic] = useState(false);
   const [musicSearchQuery, setMusicSearchQuery] = useState("");
   const [isMusicPlayerOpen, setIsMusicPlayerOpen] = useState(false);
@@ -172,6 +186,24 @@ export function YouTubeV() {
 
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [activeSidebarItem, setActiveSidebarItem] = useState("Beranda");
+
+  const handleSidebarClick = (item: string) => {
+    setActiveSidebarItem(item);
+    setIsMobileSidebarOpen(false);
+    setActiveVideo(null);
+    setSearchQuery("");
+    setShowMusic(false);
+    if (item === "Beranda") fetchVideos("indonesia trending");
+    else if (item === "Eksplorasi") fetchVideos("eksplorasi terbaru");
+    else if (item === "Subscription") fetchVideos("subscription feed trailer video youtube channel");
+    else if (item === "Histori") fetchVideos("cara membuat tutorial");
+    else if (item === "Tonton Nanti") fetchVideos("must watch list");
+    else if (item === "Video yang disukai") fetchVideos("music hit pop trending");
+    else if (item === "Shorts") fetchVideos("youtube shorts indonesia");
+    else if (item === "Subs") fetchVideos("subscription list channel");
+    else if (item === "Koleksi") fetchVideos("koleksi video favorit");
+  };
 
   const fetchVideos = async (query: string = "indonesia trending") => {
     setIsLoading(true);
@@ -205,10 +237,13 @@ export function YouTubeV() {
     fetchVideos("indonesia trending");
   }, []);
 
+  const [visibleRelatedCount, setVisibleRelatedCount] = useState(15);
+
   useEffect(() => {
     if (!activeVideo) {
       setRelatedFilter('Semua');
       setRelatedVideos([]);
+      setVisibleRelatedCount(15);
       return;
     }
     const fetchRelated = async () => {
@@ -223,6 +258,7 @@ export function YouTubeV() {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         const data = await res.json();
         setRelatedVideos((data.items || []).filter((item: VideoData) => item.duration !== "Shorts"));
+        setVisibleRelatedCount(15);
       } catch (err) {
         console.error(err);
       } finally {
@@ -234,6 +270,50 @@ export function YouTubeV() {
     // or fetch differently. Let's just fetch it normally.
     fetchRelated();
   }, [activeVideo, relatedFilter]);
+
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+  const fetchMoreVideos = async () => {
+    if (isFetchingMore) return;
+    setIsFetchingMore(true);
+    try {
+      const randomQuery = ["music terbaru", "berita nasional", "gaming channel", "podcast menarik", "video lucu terkini", "trending populer"][Math.floor(Math.random() * 6)];
+      const res = await fetch(`/api/search?q=${encodeURIComponent(randomQuery)}`);
+      const data = await res.json();
+      if (data.items && data.items.length > 0) {
+         setVideos(prev => {
+           const newVideos = data.items.filter((item: VideoData) => item.duration !== "Shorts");
+           // Filter out duplicates
+           const existingIds = new Set(prev.map(v => v.id));
+           const uniqueNew = newVideos.filter((v: VideoData) => !existingIds.has(v.id));
+           return [...prev, ...uniqueNew];
+         });
+         setVisibleCount(prev => prev + 12);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetchingMore(false);
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop <= clientHeight + 600) {
+      if (!activeVideo) {
+        if (visibleCount < videos.length) {
+          setVisibleCount(prev => Math.min(prev + 12, videos.length));
+        } else if (!isFetchingMore && !isLoading) {
+          fetchMoreVideos();
+        }
+      } else {
+        const activeList = relatedVideos.length > 0 ? relatedVideos : videos;
+        if (visibleRelatedCount < activeList.length) {
+          setVisibleRelatedCount(prev => Math.min(prev + 12, activeList.length));
+        }
+      }
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,16 +413,16 @@ export function YouTubeV() {
             
             {/* Drawer Items */}
              <div className="py-3 flex-1 overflow-y-auto">
-                <div onClick={() => setIsMobileSidebarOpen(false)}>
-                  <SidebarItem icon={<Home className="w-5 h-5" />} label="Beranda" active />
-                  <SidebarItem icon={<Compass className="w-5 h-5" />} label="Eksplorasi" />
-                  <SidebarItem icon={<PlaySquare className="w-5 h-5" />} label="Subscription" />
+                <div>
+                  <SidebarItem onClick={() => handleSidebarClick("Beranda")} icon={<Home className="w-5 h-5" />} label="Beranda" active={activeSidebarItem === "Beranda"} />
+                  <SidebarItem onClick={() => handleSidebarClick("Eksplorasi")} icon={<Compass className="w-5 h-5" />} label="Eksplorasi" active={activeSidebarItem === "Eksplorasi"} />
+                  <SidebarItem onClick={() => handleSidebarClick("Subscription")} icon={<PlaySquare className="w-5 h-5" />} label="Subscription" active={activeSidebarItem === "Subscription"} />
                   
                   <div className="my-3 border-t border-blue-200" />
                   
-                  <SidebarItem icon={<History className="w-5 h-5" />} label="Histori" />
-                  <SidebarItem icon={<Clock className="w-5 h-5" />} label="Tonton Nanti" />
-                  <SidebarItem icon={<ThumbsUp className="w-5 h-5" />} label="Video yang disukai" />
+                  <SidebarItem onClick={() => handleSidebarClick("Histori")} icon={<History className="w-5 h-5" />} label="Histori" active={activeSidebarItem === "Histori"} />
+                  <SidebarItem onClick={() => handleSidebarClick("Tonton Nanti")} icon={<Clock className="w-5 h-5" />} label="Tonton Nanti" active={activeSidebarItem === "Tonton Nanti"} />
+                  <SidebarItem onClick={() => handleSidebarClick("Video yang disukai")} icon={<ThumbsUp className="w-5 h-5" />} label="Video yang disukai" active={activeSidebarItem === "Video yang disukai"} />
                 </div>
             </div>
           </div>
@@ -353,27 +433,27 @@ export function YouTubeV() {
         {/* Sidebar */}
         <aside className="w-[72px] sm:w-[200px] md:w-[240px] shrink-0 overflow-y-auto hidden sm:flex flex-col bg-blue-50 border-r border-blue-200 hover:border-blue-300 custom-scrollbar">
           <div className="py-3 hidden md:block">
-            <SidebarItem icon={<Home className="w-5 h-5" />} label="Beranda" active />
-            <SidebarItem icon={<Compass className="w-5 h-5" />} label="Eksplorasi" />
-            <SidebarItem icon={<PlaySquare className="w-5 h-5" />} label="Subscription" />
+            <SidebarItem onClick={() => handleSidebarClick("Beranda")} icon={<Home className="w-5 h-5" />} label="Beranda" active={activeSidebarItem === "Beranda"} />
+            <SidebarItem onClick={() => handleSidebarClick("Eksplorasi")} icon={<Compass className="w-5 h-5" />} label="Eksplorasi" active={activeSidebarItem === "Eksplorasi"} />
+            <SidebarItem onClick={() => handleSidebarClick("Subscription")} icon={<PlaySquare className="w-5 h-5" />} label="Subscription" active={activeSidebarItem === "Subscription"} />
             
             <div className="my-3 border-t border-blue-200" />
             
-            <SidebarItem icon={<History className="w-5 h-5" />} label="Histori" />
-            <SidebarItem icon={<Clock className="w-5 h-5" />} label="Tonton Nanti" />
-            <SidebarItem icon={<ThumbsUp className="w-5 h-5" />} label="Video yang disukai" />
+            <SidebarItem onClick={() => handleSidebarClick("Histori")} icon={<History className="w-5 h-5" />} label="Histori" active={activeSidebarItem === "Histori"} />
+            <SidebarItem onClick={() => handleSidebarClick("Tonton Nanti")} icon={<Clock className="w-5 h-5" />} label="Tonton Nanti" active={activeSidebarItem === "Tonton Nanti"} />
+            <SidebarItem onClick={() => handleSidebarClick("Video yang disukai")} icon={<ThumbsUp className="w-5 h-5" />} label="Video yang disukai" active={activeSidebarItem === "Video yang disukai"} />
           </div>
 
           <div className="py-2 flex flex-col items-center md:hidden gap-1">
-             <MiniSidebarItem icon={<Home className="w-6 h-6" />} label="Beranda" active />
-             <MiniSidebarItem icon={<Compass className="w-6 h-6" />} label="Shorts" />
-             <MiniSidebarItem icon={<PlaySquare className="w-6 h-6" />} label="Subs" />
-             <MiniSidebarItem icon={<History className="w-6 h-6" />} label="Koleksi" />
+             <MiniSidebarItem onClick={() => handleSidebarClick("Beranda")} icon={<Home className="w-6 h-6" />} label="Beranda" active={activeSidebarItem === "Beranda"} />
+             <MiniSidebarItem onClick={() => handleSidebarClick("Shorts")} icon={<Compass className="w-6 h-6" />} label="Shorts" active={activeSidebarItem === "Shorts"} />
+             <MiniSidebarItem onClick={() => handleSidebarClick("Subs")} icon={<PlaySquare className="w-6 h-6" />} label="Subs" active={activeSidebarItem === "Subs"} />
+             <MiniSidebarItem onClick={() => handleSidebarClick("Koleksi")} icon={<History className="w-6 h-6" />} label="Koleksi" active={activeSidebarItem === "Koleksi"} />
           </div>
         </aside>
 
         {/* Main Content Area */}
-        <main id="main-scroll-container" className="flex-1 overflow-y-auto bg-blue-50 custom-scrollbar focus:outline-none" tabIndex={0}>
+        <main id="main-scroll-container" onScroll={handleScroll} className="flex-1 overflow-y-auto bg-blue-50 custom-scrollbar focus:outline-none" tabIndex={0}>
           {activeVideo ? (
             // Video Player View
             <div className="flex flex-col lg:flex-row w-full max-w-[1700px] mx-auto p-0 sm:p-6 lg:p-8 gap-8">
@@ -412,26 +492,50 @@ export function YouTubeV() {
                         <h3 className="font-bold text-[17px] text-blue-950 leading-tight">{activeVideo.channel}</h3>
                         <p className="text-[13px] text-blue-700 font-medium">1.2M subscriber</p>
                       </div>
-                      <button className="ml-4 px-6 py-2.5 bg-blue-950 text-white font-semibold rounded-full hover:bg-blue-800 transition-colors text-[15px] shadow-[0_0_15px_rgba(23,37,84,0.1)]">
-                        Subscribe
+                      <button 
+                         onClick={() => toggleSubscribe(activeVideo.channel)}
+                         className={`ml-4 px-6 py-2.5 font-semibold rounded-full transition-colors text-[15px] shadow-[0_0_15px_rgba(23,37,84,0.1)] ${isSubscribed[activeVideo.channel] ? 'bg-blue-100 text-blue-950 hover:bg-blue-200' : 'bg-blue-950 text-white hover:bg-blue-800'}`}
+                      >
+                        {isSubscribed[activeVideo.channel] ? 'Disubscribe' : 'Subscribe'}
                       </button>
                     </div>
 
                     <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2 sm:pb-0">
                       <div className="flex items-center bg-white rounded-full border border-blue-200 shadow-sm">
-                        <button className="flex items-center gap-2 px-5 py-2.5 hover:bg-blue-50 rounded-l-full transition-colors border-r border-blue-200 text-blue-950">
-                          <ThumbsUp className="w-5 h-5" />
-                          <span className="text-[15px] font-semibold">42K</span>
+                        <button 
+                           onClick={() => handleLike(activeVideo.id, 'like')}
+                           className={`flex items-center gap-2 px-5 py-2.5 hover:bg-blue-50 rounded-l-full transition-colors border-r border-blue-200 ${likedVideos[activeVideo.id] === 'like' ? 'text-blue-700 bg-blue-50' : 'text-blue-950'}`}
+                        >
+                          <ThumbsUp className={`w-5 h-5 ${likedVideos[activeVideo.id] === 'like' ? 'fill-current' : ''}`} />
+                          <span className="text-[15px] font-semibold">{likedVideos[activeVideo.id] === 'like' ? '42.1K' : '42K'}</span>
                         </button>
-                        <button className="px-5 py-2.5 hover:bg-blue-50 rounded-r-full transition-colors text-blue-950">
-                          <ThumbsDown className="w-5 h-5" />
+                        <button 
+                           onClick={() => handleLike(activeVideo.id, 'dislike')}
+                           className={`px-5 py-2.5 hover:bg-blue-50 rounded-r-full transition-colors ${likedVideos[activeVideo.id] === 'dislike' ? 'text-blue-700 bg-blue-50' : 'text-blue-950'}`}
+                        >
+                          <ThumbsDown className={`w-5 h-5 ${likedVideos[activeVideo.id] === 'dislike' ? 'fill-current' : ''}`} />
                         </button>
                       </div>
-                      <button className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-blue-50 border border-blue-200 shadow-sm rounded-full transition-colors whitespace-nowrap text-blue-950">
+                      <button 
+                         onClick={() => {
+                           // Mock copy logic
+                           const tempInput = document.createElement('input');
+                           tempInput.value = window.location.href;
+                           document.body.appendChild(tempInput);
+                           tempInput.select();
+                           document.execCommand('copy');
+                           document.body.removeChild(tempInput);
+                           alert("Link disalin!");
+                         }}
+                         className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-blue-50 border border-blue-200 shadow-sm rounded-full transition-colors whitespace-nowrap text-blue-950"
+                      >
                         <Share2 className="w-5 h-5" />
                         <span className="text-[15px] font-semibold">Share</span>
                       </button>
-                      <button className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-blue-50 border border-blue-200 shadow-sm rounded-full transition-colors whitespace-nowrap hidden sm:flex text-blue-950">
+                      <button 
+                         onClick={() => alert("Mendownload Video...")}
+                         className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-blue-50 border border-blue-200 shadow-sm rounded-full transition-colors whitespace-nowrap hidden sm:flex text-blue-950"
+                      >
                         <Download className="w-5 h-5" />
                         <span className="text-[15px] font-semibold">Download</span>
                       </button>
@@ -491,7 +595,7 @@ export function YouTubeV() {
                        <Loader2 className="w-8 h-8 animate-spin text-blue-950/40" />
                      </div>
                   ) : (
-                    (relatedVideos.length > 0 ? relatedVideos : videos).filter(v => v.id !== activeVideo?.id).slice(0, 15).map((v, idx) => (
+                    (relatedVideos.length > 0 ? relatedVideos : videos).filter(v => v.id !== activeVideo?.id).slice(0, visibleRelatedCount).map((v, idx) => (
                       <div 
                         key={`${v.id}-${idx}`} 
                         className="flex gap-2 group cursor-pointer hover:bg-white hover:shadow-sm border border-transparent hover:border-blue-200 p-2 rounded-lg transition-all"
@@ -615,15 +719,9 @@ export function YouTubeV() {
                         </div>
                       </div>
                     ))}
-                    {visibleCount < videos.length && (
+                    {(visibleCount < videos.length || isFetchingMore) && (
                       <div className="col-span-full flex justify-center mt-6 mb-8">
-                        <button 
-                          onClick={() => setVisibleCount(prev => prev + 12)}
-                          className="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-950 px-6 py-2.5 rounded-full transition-colors font-medium border border-blue-200 shadow-sm"
-                        >
-                          <ChevronDown className="w-5 h-5" />
-                          Tampilkan Lebih Banyak
-                        </button>
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-950/40" />
                       </div>
                     )}
                   </>
@@ -1030,18 +1128,18 @@ export function YouTubeV() {
   );
 }
 
-function SidebarItem({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
+function SidebarItem({ icon, label, active = false, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) {
   return (
-    <button className={`w-[90%] mx-auto flex items-center gap-4 px-3 py-3 rounded-xl text-[15px] transition-all duration-300 ${active ? 'bg-blue-100 font-semibold text-blue-950 shadow-sm' : 'hover:bg-blue-100/50 font-medium text-blue-700 hover:text-blue-950'}`}>
+    <button onClick={onClick} className={`w-[90%] mx-auto flex items-center gap-4 px-3 py-3 rounded-xl text-[15px] transition-all duration-300 ${active ? 'bg-blue-100 font-semibold text-blue-950 shadow-sm' : 'hover:bg-blue-100/50 font-medium text-blue-700 hover:text-blue-950'}`}>
       <span className={`${active ? 'text-blue-950' : 'text-blue-700 group-hover:text-blue-950'} transition-colors`}>{icon}</span>
       <span className="truncate tracking-wide">{label}</span>
     </button>
   );
 }
 
-function MiniSidebarItem({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
+function MiniSidebarItem({ icon, label, active = false, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) {
   return (
-    <button className={`w-[90%] mx-auto flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl transition-all duration-300 hover:bg-blue-100/50 ${active ? 'text-blue-950 bg-blue-100 shadow-sm' : 'text-blue-700 hover:text-blue-950'}`}>
+    <button onClick={onClick} className={`w-[90%] mx-auto flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl transition-all duration-300 hover:bg-blue-100/50 ${active ? 'text-blue-950 bg-blue-100 shadow-sm' : 'text-blue-700 hover:text-blue-950'}`}>
       {icon}
       <span className="text-[10px] truncate w-full text-center tracking-wider">{label}</span>
     </button>
