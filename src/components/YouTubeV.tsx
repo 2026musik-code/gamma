@@ -20,6 +20,9 @@ export function YouTubeV() {
   const [activeVideo, setActiveVideo] = useState<VideoData | null>(null);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [relatedVideos, setRelatedVideos] = useState<VideoData[]>([]);
+  const [relatedFilter, setRelatedFilter] = useState('Semua');
+  const [isRelatedLoading, setIsRelatedLoading] = useState(false);
 
   const [showMusic, setShowMusic] = useState(false);
   const [musicSearchQuery, setMusicSearchQuery] = useState("");
@@ -201,6 +204,36 @@ export function YouTubeV() {
   useEffect(() => {
     fetchVideos("indonesia trending");
   }, []);
+
+  useEffect(() => {
+    if (!activeVideo) {
+      setRelatedFilter('Semua');
+      setRelatedVideos([]);
+      return;
+    }
+    const fetchRelated = async () => {
+      setIsRelatedLoading(true);
+      try {
+        let query = "indonesia trending";
+        if (relatedFilter === 'Semua') query = "music video " + activeVideo.channel;
+        if (relatedFilter === 'Dari ini') query = activeVideo.channel;
+        if (relatedFilter === 'Terkait') query = activeVideo.title + " related";
+        if (relatedFilter === 'Terbaru') query = activeVideo.channel + " terbaru 2026";
+
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        setRelatedVideos((data.items || []).filter((item: VideoData) => item.duration !== "Shorts"));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsRelatedLoading(false);
+      }
+    };
+    
+    // For 'Semua' initially we can just use the global videos array, 
+    // or fetch differently. Let's just fetch it normally.
+    fetchRelated();
+  }, [activeVideo, relatedFilter]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -442,43 +475,53 @@ export function YouTubeV() {
               {/* Related Videos Column */}
               <div className="w-full lg:w-[400px] px-4 sm:px-0">
                 <div className="flex gap-2 overflow-x-auto mb-4 no-scrollbar">
-                  {['Semua', 'Dari ini', 'Terkait', 'Terbaru'].map((cat, i) => (
-                    <button key={cat} className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors border ${i === 0 ? 'bg-blue-950 text-white border-blue-950' : 'bg-white text-blue-950 hover:bg-blue-100 border-blue-200 shadow-sm'}`}>
+                  {['Semua', 'Dari ini', 'Terkait', 'Terbaru'].map((cat) => (
+                    <button 
+                      key={cat} 
+                      onClick={() => setRelatedFilter(cat)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors border ${relatedFilter === cat ? 'bg-blue-950 text-white border-blue-950' : 'bg-white text-blue-950 hover:bg-blue-100 border-blue-200 shadow-sm'}`}
+                    >
                       {cat}
                     </button>
                   ))}
                 </div>
-                <div className="flex flex-col gap-3">
-                  {videos.filter(v => v.id !== activeVideo.id).slice(0, 10).map((v, idx) => (
-                    <div 
-                      key={`${v.id}-${idx}`} 
-                      className="flex gap-2 group cursor-pointer hover:bg-white hover:shadow-sm border border-transparent hover:border-blue-200 p-2 rounded-lg transition-all"
-                      onClick={() => {
-                        setActiveVideo(v);
-                        document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'auto' });
-                      }}
-                    >
-                      <div className="w-[160px] shrink-0 aspect-video rounded-lg overflow-hidden relative border border-blue-200 shadow-sm">
-                        <img 
-                          src={v.thumbnail} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://i.ytimg.com/vi/${v.id.split('v=')[1]?.split('&')[0] || v.id}/hqdefault.jpg`;
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-blue-950/10 group-hover:bg-transparent transition-colors"></div>
-                        <div className="absolute bottom-1 right-1 bg-black/70 backdrop-blur-sm px-1 py-0.5 rounded text-[10px] font-medium text-white shadow-md">
-                          {v.duration}
+                <div className="flex flex-col gap-3 relative min-h-[300px]">
+                  {isRelatedLoading ? (
+                     <div className="absolute inset-0 flex items-center justify-center">
+                       <Loader2 className="w-8 h-8 animate-spin text-blue-950/40" />
+                     </div>
+                  ) : (
+                    (relatedVideos.length > 0 ? relatedVideos : videos).filter(v => v.id !== activeVideo?.id).slice(0, 15).map((v, idx) => (
+                      <div 
+                        key={`${v.id}-${idx}`} 
+                        className="flex gap-2 group cursor-pointer hover:bg-white hover:shadow-sm border border-transparent hover:border-blue-200 p-2 rounded-lg transition-all"
+                        onClick={() => {
+                          setActiveVideo(v);
+                          document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'auto' });
+                        }}
+                      >
+                        <div className="w-[160px] shrink-0 aspect-video rounded-lg overflow-hidden relative border border-blue-200 shadow-sm">
+                          <img 
+                            src={v.thumbnail} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://i.ytimg.com/vi/${v.id.split('v=')[1]?.split('&')[0] || v.id}/hqdefault.jpg`;
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-blue-950/10 group-hover:bg-transparent transition-colors"></div>
+                          <div className="absolute bottom-1 right-1 bg-black/70 backdrop-blur-sm px-1 py-0.5 rounded text-[10px] font-medium text-white shadow-md">
+                            {v.duration}
+                          </div>
+                        </div>
+                        <div className="flex flex-col py-0.5">
+                          <span className="text-sm font-medium line-clamp-2 leading-tight group-hover:text-blue-700 text-blue-950">
+                            {v.title}
+                          </span>
+                          <span className="text-xs text-blue-700 mt-1">{v.channel}</span>
                         </div>
                       </div>
-                      <div className="flex flex-col py-0.5">
-                        <span className="text-sm font-medium line-clamp-2 leading-tight group-hover:text-blue-700 text-blue-950">
-                          {v.title}
-                        </span>
-                        <span className="text-xs text-blue-700 mt-1">{v.channel}</span>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
