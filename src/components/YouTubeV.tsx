@@ -75,34 +75,40 @@ const parseYouTubeHTML = (html: string) => {
 
 const fetchSearchDataClient = async (query: string): Promise<{ items: VideoData[] }> => {
   try {
-    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-    const contentType = res.headers.get("content-type");
-    
-    if (contentType && contentType.includes("text/html")) {
-      console.warn("Backend API not found, falling back to client-side proxy...");
-      const proxyRes = await fetch(`${CORS_PROXY}${encodeURIComponent(YOUTUBE_SEARCH_URL + encodeURIComponent(query))}`);
-      if (!proxyRes.ok) throw new Error("CORS Proxy failed");
-      const html = await proxyRes.text();
-      return { items: parseYouTubeHTML(html) };
-    }
-    
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || "Gagal mengambil data dari server");
-    }
-    
-    return await res.json();
-  } catch (err) {
-    console.warn("API/Proxy error, trying alternative proxy...", err);
+    let html = "";
     try {
-      const proxyRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(YOUTUBE_SEARCH_URL + encodeURIComponent(query))}`);
-      if (!proxyRes.ok) throw new Error("Pencarian gagal, coba lagi nanti.");
-      const html = await proxyRes.text();
-      return { items: parseYouTubeHTML(html) };
-    } catch(e) {
-       console.error("All proxys failed", e);
-       throw e;
+      // Try backend first
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const contentType = res.headers.get("content-type");
+      
+      if (res.ok && contentType && contentType.includes("application/json")) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.warn("Backend API request failed (Network error or missing). Falling back to proxy...", e);
     }
+
+    try {
+      // First proxy fallback
+      console.warn("Trying CORS Proxy...");
+      const proxyRes = await fetch(`${CORS_PROXY}${encodeURIComponent(YOUTUBE_SEARCH_URL + encodeURIComponent(query))}`);
+      if (proxyRes.ok) {
+        html = await proxyRes.text();
+      } else {
+         throw new Error("First proxy failed");
+      }
+    } catch (proxyErr) {
+      console.warn("First proxy error, trying alternative proxy...", proxyErr);
+      // Alternative proxy fallback
+      const altRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(YOUTUBE_SEARCH_URL + encodeURIComponent(query))}`);
+      if (!altRes.ok) throw new Error("Pencarian gagal, server tidak merespon. Coba lagi nanti.");
+      html = await altRes.text();
+    }
+
+    return { items: parseYouTubeHTML(html) };
+  } catch (err: any) {
+    console.error("All search methods failed", err);
+    throw new Error(err.message || "Gagal mengambil data. Periksa koneksi internet Anda.");
   }
 };
 
