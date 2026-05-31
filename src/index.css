@@ -29,3 +29,30 @@
     @apply bg-neutral-700/80;
   }
 }
+
+@keyframes heartbeat-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+  }
+  15% {
+    transform: scale(1.15);
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.8), 0 0 45px rgba(16, 185, 129, 0.6);
+  }
+  30% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+  }
+  45% {
+    transform: scale(1.15);
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.8), 0 0 45px rgba(16, 185, 129, 0.6);
+  }
+  60% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+  }
+}
+
+.animate-heartbeat {
+  animation: heartbeat-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

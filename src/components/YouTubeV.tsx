@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Menu, Mic, Bell, Video, CircleUser, Play, Home, Compass, PlaySquare, Clock, ThumbsUp, History, Loader2, ArrowLeft, MoreHorizontal, Share2, Download, ThumbsDown, ChevronDown, MessageSquare, Music, Pause, SkipForward, SkipBack, Shuffle, Repeat, Repeat1, Volume2, VolumeX } from "lucide-react";
+import { Search, Menu, Mic, Bell, Video, CircleUser, Play, Home, Compass, PlaySquare, Clock, ThumbsUp, History, Loader2, ArrowLeft, MoreHorizontal, Share2, Download, ThumbsDown, ChevronDown, Music, Pause, SkipForward, SkipBack, Shuffle, Repeat, Repeat1, Volume2, VolumeX } from "lucide-react";
 import YouTube, { YouTubeProps, YouTubePlayer } from "react-youtube";
 
 type VideoData = {
@@ -57,6 +57,17 @@ export function YouTubeV() {
   const [repeatMode, setRepeatMode] = useState<0|1|2>(0);
   const [volume, setVolume] = useState(100);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const volumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleVolumeInteraction = () => {
+    setShowVolumeSlider(true);
+    if (volumeTimeoutRef.current) {
+      clearTimeout(volumeTimeoutRef.current);
+    }
+    volumeTimeoutRef.current = setTimeout(() => {
+      setShowVolumeSlider(false);
+    }, 3000);
+  };
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -516,26 +527,11 @@ export function YouTubeV() {
                           <ThumbsDown className={`w-5 h-5 ${likedVideos[activeVideo.id] === 'dislike' ? 'fill-current' : ''}`} />
                         </button>
                       </div>
-                      <button 
-                         onClick={() => {
-                           // Mock copy logic
-                           const tempInput = document.createElement('input');
-                           tempInput.value = window.location.href;
-                           document.body.appendChild(tempInput);
-                           tempInput.select();
-                           document.execCommand('copy');
-                           document.body.removeChild(tempInput);
-                           alert("Link disalin!");
-                         }}
-                         className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-blue-50 border border-blue-200 shadow-sm rounded-full transition-colors whitespace-nowrap text-blue-950"
-                      >
+                      <button className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-blue-50 border border-blue-200 shadow-sm rounded-full transition-colors whitespace-nowrap text-blue-950">
                         <Share2 className="w-5 h-5" />
                         <span className="text-[15px] font-semibold">Share</span>
                       </button>
-                      <button 
-                         onClick={() => alert("Mendownload Video...")}
-                         className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-blue-50 border border-blue-200 shadow-sm rounded-full transition-colors whitespace-nowrap hidden sm:flex text-blue-950"
-                      >
+                      <button className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-blue-50 border border-blue-200 shadow-sm rounded-full transition-colors whitespace-nowrap hidden sm:flex text-blue-950">
                         <Download className="w-5 h-5" />
                         <span className="text-[15px] font-semibold">Download</span>
                       </button>
@@ -738,24 +734,24 @@ export function YouTubeV() {
           setShowMusic(true);
           if (trendingMusic.length === 0) fetchMusicDashboard();
         }}
-        className="fixed bottom-[104px] right-6 w-14 h-14 bg-emerald-950/90 backdrop-blur-xl rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(16,185,129,0.4)] border border-emerald-500/20 hover:scale-105 active:scale-95 transition-all z-40 group hover:border-emerald-500/50"
+        className="fixed bottom-[104px] right-6 w-14 h-14 bg-emerald-950/90 backdrop-blur-xl rounded-full flex items-center justify-center border border-emerald-500/20 active:scale-95 transition-all z-40 group hover:border-emerald-500/50 animate-heartbeat"
         title="YT Music"
       >
-        <Music className="w-5 h-5 text-emerald-400/80 group-hover:text-emerald-400 transition-colors" />
+        <Music className="w-6 h-6 text-emerald-400 group-hover:text-emerald-300 transition-colors" />
       </button>
 
 
 
       {/* Music Modal */}
       {showMusic && (
-        <div className="fixed inset-0 z-50 flex justify-center bg-black/60 backdrop-blur-2xl">
-          <div className="w-full max-w-[450px] flex flex-col relative h-full bg-green-50 shadow-[0_0_100px_rgba(0,0,0,0.5)] border-x border-green-200 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex justify-center bg-black/60 backdrop-blur-2xl lg:p-6 p-0">
+          <div className="w-full max-w-[450px] lg:max-w-[1200px] flex flex-col relative h-[100dvh] lg:h-full bg-green-50 shadow-[0_0_100px_rgba(0,0,0,0.5)] lg:border border-green-200 overflow-hidden lg:rounded-[32px]">
             {!isMusicPlayerOpen ? (
               // BROWSE VIEW
               <div className="flex flex-col h-full w-full">
                 {/* Header & Search */}
-                <div className="p-4 pt-5 bg-gradient-to-b from-green-100/90 to-transparent z-10 sticky top-0">
-                  <div className="flex items-center gap-4 mb-3">
+                <div className="p-4 pt-5 bg-gradient-to-b from-green-100/90 to-transparent z-10 sticky top-0 backdrop-blur-md">
+                  <div className="flex items-center gap-4 mb-3 max-w-2xl mx-auto items-center">
                     <button 
                       onClick={() => setShowMusic(false)} 
                       className="p-2 hover:bg-black/5 rounded-full transition-colors cursor-pointer"
@@ -767,7 +763,7 @@ export function YouTubeV() {
                       YT Music
                     </h2>
                   </div>
-                  <form onSubmit={handleMusicSearch} className="relative">
+                  <form onSubmit={handleMusicSearch} className="relative max-w-2xl mx-auto">
                     <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-green-800/70" />
                     <input 
                       type="text" 
@@ -785,30 +781,32 @@ export function YouTubeV() {
                       <Loader2 className="w-8 h-8 animate-spin text-green-600" />
                     </div>
                   ) : searchMusicResults.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                      <h3 className="font-bold text-green-950 text-lg font-display mb-2">Hasil Pencarian</h3>
-                      {searchMusicResults.map((music) => (
-                        <div 
-                          key={music.id} 
-                          className="flex items-center gap-3 cursor-pointer group p-2 hover:bg-green-200/50 rounded-2xl transition-all"
-                          onClick={() => {
-                            setActiveMusic(music);
-                            setMusicList(searchMusicResults);
-                            setIsMusicPlayerOpen(true);
-                          }}
-                        >
-                          <div className="w-14 h-14 rounded-xl overflow-hidden shadow-md relative">
-                            <img src={music.thumbnail} alt={music.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Play className="w-5 h-5 text-white fill-current" />
+                    <div className="flex flex-col gap-2 max-w-5xl mx-auto w-full">
+                      <h3 className="font-bold text-green-950 text-xl font-display mb-3">Hasil Pencarian</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {searchMusicResults.map((music) => (
+                          <div 
+                            key={music.id} 
+                            className="flex items-center gap-3 cursor-pointer group p-2 hover:bg-green-200/50 rounded-2xl transition-all"
+                            onClick={() => {
+                              setActiveMusic(music);
+                              setMusicList(searchMusicResults);
+                              setIsMusicPlayerOpen(true);
+                            }}
+                          >
+                            <div className="w-14 h-14 rounded-xl overflow-hidden shadow-md relative shrink-0">
+                              <img src={music.thumbnail} alt={music.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Play className="w-5 h-5 text-white fill-current" />
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-green-950 font-semibold truncate text-[15px] mb-0.5 group-hover:text-green-700 transition-colors">{music.title}</p>
+                              <p className="text-green-800/70 text-[13px] truncate">{music.channel}</p>
                             </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-green-950 font-semibold truncate text-[15px] mb-0.5 group-hover:text-green-700 transition-colors">{music.title}</p>
-                            <p className="text-green-800/70 text-[13px] truncate">{music.channel}</p>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -845,9 +843,9 @@ export function YouTubeV() {
                       </div>
 
                       {/* Viral List */}
-                      <div className="mb-5">
-                        <h3 className="font-bold text-green-950 text-xl font-display mb-3">Lagu Viral & Terpopuler</h3>
-                        <div className="flex flex-col gap-1.5">
+                      <div className="mb-5 max-w-5xl mx-auto w-full">
+                        <h3 className="font-bold text-green-950 text-xl font-display mb-3 px-4 lg:px-0">Lagu Viral & Terpopuler</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 px-4 lg:px-0">
                           {viralMusic.map((music, index) => (
                             <div 
                               key={music.id} 
@@ -862,7 +860,7 @@ export function YouTubeV() {
                               <span className="w-4 text-center hidden group-hover:block">
                                 <Play className="w-4 h-4 text-green-700 fill-current" />
                               </span>
-                              <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm">
+                              <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm shrink-0">
                                 <img src={music.thumbnail} alt={music.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -921,7 +919,7 @@ export function YouTubeV() {
                           videoId={activeMusic.id} 
                           opts={{ height: '10', width: '10', playerVars: { autoplay: 1, playsinline: 1 } }}
                           onReady={(e) => setMusicPlayer(e.target)}
-                          onError={(e) => console.log('YT Error', e)}
+                          onError={() => {}}
                           onStateChange={(e) => {
                             if (e.data === 0) {
                               if (repeatMode === 2 && musicPlayer) {
@@ -963,11 +961,29 @@ export function YouTubeV() {
                   <div className="w-12"></div> {/* Spacer for alignment */}
                 </div>
 
-                <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar px-7 pb-8 pt-4 z-10">
-                  {/* Visualizer / Video */}
-                  <div className="w-full aspect-square rounded-[32px] overflow-hidden bg-green-200 shadow-[0_30px_60px_rgba(0,0,0,0.2)] mb-10 relative border border-green-300 group">
+                <div 
+                  className="flex flex-col lg:flex-row flex-1 overflow-y-auto no-scrollbar px-7 lg:px-12 pb-8 pt-4 lg:pt-12 z-10 gap-8 lg:gap-16 items-center lg:items-start justify-center max-w-7xl mx-auto w-full"
+                  onMouseMove={handleVolumeInteraction}
+                  onTouchStart={handleVolumeInteraction}
+                >
+                  <div className="w-full lg:w-[440px] xl:w-[500px] flex flex-col shrink-0 mx-auto lg:mx-0">
+                    {/* Visualizer / Poster */}
+                    <div className="w-full aspect-square shrink-0 rounded-[32px] overflow-hidden bg-green-200 shadow-[0_30px_60px_rgba(0,0,0,0.2)] mb-8 lg:mb-10 relative border border-green-300 group flex items-center justify-center">
+                    {activeMusic && (
+                      <img 
+                        src={activeMusic.thumbnail} 
+                        alt={activeMusic.title}
+                        className={`absolute inset-0 w-full h-full object-cover z-20 pointer-events-none transition-transform duration-[20s] ease-linear ${isPlayingMusic ? 'scale-125' : 'scale-100'}`}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = `https://i.ytimg.com/vi/${activeMusic.id.split('v=')[1]?.split('&')[0] || activeMusic.id}/hqdefault.jpg`;
+                        }}
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-black/10 z-20 pointer-events-none"></div>
                     <YouTube 
                       videoId={activeMusic?.id} 
+                      className="absolute inset-0 z-10 w-full h-full opacity-0 pointer-events-none"
                       opts={{
                         height: '100%',
                         width: '100%',
@@ -981,7 +997,7 @@ export function YouTubeV() {
                       onReady={(e) => {
                         setMusicPlayer(e.target);
                       }}
-                      onError={(e) => console.log('YT Error', e)}
+                      onError={() => {}}
                       onStateChange={(e) => {
                         if (e.data === 0) { // ENDED
                           if (repeatMode === 2 && musicPlayer) {
@@ -1078,7 +1094,7 @@ export function YouTubeV() {
                   </div>
 
                   {/* Volume Control */}
-                  <div className="flex items-center gap-3 px-4 mb-8">
+                  <div className={`flex items-center gap-3 px-4 mb-4 transition-opacity duration-500 ${showVolumeSlider ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                     <button 
                       onClick={() => {
                         const newVol = volume === 0 ? 100 : 0;
@@ -1099,21 +1115,26 @@ export function YouTubeV() {
                     />
                   </div>
 
+                  </div>
+
                   {/* Queue / Up Next */}
-                  <div className="flex flex-col gap-3 mt-auto bg-green-200/50 p-4 rounded-3xl border border-green-300/50 backdrop-blur-md">
-                    <h4 className="font-bold text-green-800 uppercase text-[11px] tracking-widest mb-1 px-1">Berikutnya</h4>
+                  <div className="w-full lg:flex-1 lg:max-w-sm xl:max-w-md flex flex-col gap-1.5 mt-auto lg:mt-0 bg-green-200/50 lg:bg-green-100/30 p-3 lg:p-4 rounded-[24px] lg:rounded-[32px] border border-green-300/50 lg:border-green-300/30 backdrop-blur-md">
+                    <h4 className="font-bold text-green-800 uppercase text-[10px] tracking-[0.15em] mb-0.5 px-2">Berikutnya</h4>
                     {musicList.slice(musicList.findIndex(m => m.id === activeMusic?.id) + 1, musicList.findIndex(m => m.id === activeMusic?.id) + 6).map((music) => (
                       <div 
                         key={music.id} 
-                        className="flex items-center gap-4 cursor-pointer group p-2 hover:bg-white/40 rounded-2xl transition-all"
+                        className="flex items-center gap-3 cursor-pointer group p-1.5 hover:bg-white/40 rounded-[16px] transition-all"
                         onClick={() => setActiveMusic(music)}
                       >
-                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-green-300 shrink-0 shadow-md">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-green-300 shrink-0 shadow-sm relative">
                           <img src={music.thumbnail} alt={music.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Play className="w-5 h-5 text-white fill-current" />
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0 pointer-events-none">
-                          <p className="text-green-950 font-semibold truncate text-[15px] mb-0.5">{music.title}</p>
-                          <p className="text-green-800/80 text-[13px] truncate">{music.channel}</p>
+                        <div className="flex-1 min-w-0 pointer-events-none group-hover:pointer-events-auto">
+                          <p className="text-green-950 font-semibold truncate text-[13px] leading-tight mb-0.5 group-hover:text-green-700 transition-colors">{music.title}</p>
+                          <p className="text-green-800/80 text-[11px] truncate">{music.channel}</p>
                         </div>
                       </div>
                     ))}
