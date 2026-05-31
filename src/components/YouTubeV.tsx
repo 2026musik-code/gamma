@@ -122,7 +122,7 @@ const fetchSearchDataClient = async (query: string): Promise<{ items: VideoData[
 
 export function YouTubeV() {
   const [videos, setVideos] = useState<VideoData[]>([]);
-  const [visibleCount, setVisibleCount] = useState(12);
+  const [visibleCount, setVisibleCount] = useState(24);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<VideoData | null>(null);
@@ -320,10 +320,10 @@ export function YouTubeV() {
       
       if (data.items && data.items.length > 0) {
         setVideos(data.items.filter((item: VideoData) => item.duration !== "Shorts"));
-        setVisibleCount(12);
+        setVisibleCount(24);
       } else {
         setVideos([]);
-        setVisibleCount(12);
+        setVisibleCount(24);
       }
     } catch (err: any) {
       console.error(err);
@@ -337,7 +337,7 @@ export function YouTubeV() {
     fetchVideos("indonesia trending");
   }, []);
 
-  const [visibleRelatedCount, setVisibleRelatedCount] = useState(15);
+  const [visibleRelatedCount, setVisibleRelatedCount] = useState(24);
 
   useEffect(() => {
     if (!activeVideo) {
@@ -386,7 +386,7 @@ export function YouTubeV() {
            const uniqueNew = newVideos.filter((v: VideoData) => !existingIds.has(v.id));
            return [...prev, ...uniqueNew];
          });
-         setVisibleCount(prev => prev + 12);
+         setVisibleCount(prev => prev + 24);
       }
     } catch (err) {
       console.error(err);
@@ -400,14 +400,14 @@ export function YouTubeV() {
     if (scrollHeight - scrollTop <= clientHeight + 600) {
       if (!activeVideo) {
         if (visibleCount < videos.length) {
-          setVisibleCount(prev => Math.min(prev + 12, videos.length));
+          setVisibleCount(prev => Math.min(prev + 24, videos.length));
         } else if (!isFetchingMore && !isLoading) {
           fetchMoreVideos();
         }
       } else {
         const activeList = relatedVideos.length > 0 ? relatedVideos : videos;
         if (visibleRelatedCount < activeList.length) {
-          setVisibleRelatedCount(prev => Math.min(prev + 12, activeList.length));
+          setVisibleRelatedCount(prev => Math.min(prev + 24, activeList.length));
         }
       }
     }
