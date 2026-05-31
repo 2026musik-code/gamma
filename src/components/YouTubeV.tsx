@@ -84,42 +84,34 @@ const fetchSearchDataClient = async (query: string): Promise<{ items: VideoData[
         return await res.json();
       }
     } catch (e) {
-      console.warn("Backend API request failed (Network error or missing). Falling back to proxy...", e);
+      console.warn("Backend API request failed. Falling back to proxies...", e);
     }
 
     const ytUrl = YOUTUBE_SEARCH_URL + encodeURIComponent(query);
-    let html = "";
+    console.warn("Menggunakan proxy untuk mempercepat pencarian...");
 
-    try {
-      // Proxy 1: AllOrigins (using /get endpoint returns JSON, very reliable for CORS)
-      console.warn("Trying AllOrigins Proxy...");
-      const altRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ytUrl)}`);
-      if (!altRes.ok) throw new Error("AllOrigins failed");
-      const data = await altRes.json();
-      if (data && data.contents) {
-        html = data.contents;
-      } else {
-        throw new Error("AllOrigins contents empty");
-      }
-    } catch (proxyErr1) {
-      console.warn("AllOrigins error, trying CodeTabs proxy...", proxyErr1);
-      
-      try {
-        // Proxy 2: CodeTabs API
-        console.warn("Trying CodeTabs Proxy...");
-        const codeTabsRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(ytUrl)}`);
-        if (!codeTabsRes.ok) throw new Error("CodeTabs failed");
-        html = await codeTabsRes.text();
-      } catch (proxyErr2) {
-        console.warn("CodeTabs error, trying CORSProxy...", proxyErr2);
-        
-        // Proxy 3: CORSProxy.io
-        console.warn("Trying CORSProxy...");
-        const proxyRes = await fetch(`${CORS_PROXY}${encodeURIComponent(ytUrl)}`);
-        if (!proxyRes.ok) throw new Error("Semua proxy gagal merespon.");
-        html = await proxyRes.text();
-      }
-    }
+    // Race the proxies using Promise.any. Whichever is fastest wins.
+    const html = await Promise.any([
+      fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ytUrl)}`)
+        .then(res => {
+          if (!res.ok) throw new Error("AllOrigins failed");
+          return res.json();
+        })
+        .then(data => {
+          if (data && data.contents) return data.contents as string;
+          throw new Error("AllOrigins contents empty");
+        }),
+      fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(ytUrl)}`)
+        .then(res => {
+          if (!res.ok) throw new Error("CodeTabs failed");
+          return res.text();
+        }),
+      fetch(`${CORS_PROXY}${encodeURIComponent(ytUrl)}`)
+        .then(res => {
+          if (!res.ok) throw new Error("CORSProxy failed");
+          return res.text();
+        })
+    ]);
 
     return { items: parseYouTubeHTML(html) };
   } catch (err: any) {
