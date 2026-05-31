@@ -12,6 +12,100 @@ type VideoData = {
   thumbnail: string;
 };
 
+const YOUTUBE_SEARCH_URL = "https://www.youtube.com/results?search_query=";
+const CORS_PROXY = "https://corsproxy.io/?";
+
+const parseYouTubeHTML = (html: string) => {
+  const match = html.match(/ytInitialData\s*=\s*({.+?});/);
+  if (!match) throw new Error("Gagal mengambil data YouTube (struktur berubah)");
+  const ytData = JSON.parse(match[1]);
+  const items = ytData.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents || [];
+
+  let mappedVideos: VideoData[] = [];
+  items.forEach((item: any) => {
+    if (item.videoRenderer) {
+      const v = item.videoRenderer;
+      mappedVideos.push({
+        id: v.videoId,
+        duration: v.lengthText?.simpleText || "0:00",
+        views: v.viewCountText?.simpleText || "0 views",
+        title: v.title?.runs?.[0]?.text || "",
+        channel: v.ownerText?.runs?.[0]?.text || "",
+        time: v.publishedTimeText?.simpleText || "",
+        thumbnail: v.thumbnail?.thumbnails?.[v.thumbnail?.thumbnails?.length - 1]?.url || v.thumbnail?.thumbnails?.[0]?.url || "",
+      });
+    } else if (item.reelShelfRenderer) {
+      item.reelShelfRenderer.items?.forEach((reelItem: any) => {
+        if (reelItem.reelItemRenderer) {
+          const r = reelItem.reelItemRenderer;
+          mappedVideos.push({
+            id: r.videoId,
+            duration: "Shorts",
+            views: r.viewCountText?.simpleText || "0 views",
+            title: r.headline?.simpleText || "",
+            channel: r.channelText?.runs?.[0]?.text || "Shorts",
+            time: "",
+            thumbnail: r.thumbnail?.thumbnails?.[r.thumbnail?.thumbnails?.length - 1]?.url || r.thumbnail?.thumbnails?.[0]?.url || "",
+          });
+        }
+      });
+    } else if (item.gridShelfViewModel) {
+      item.gridShelfViewModel.contents?.forEach((c: any) => {
+        const s = c.shortsLockupViewModel;
+        if (s) {
+          const videoId = s.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId;
+          const title = s.overlayMetadata?.primaryText?.content || s.accessibilityText;
+          const viewsMatch = s.accessibilityText?.match(/,\s*(.+?)\s*-\s*putar/);
+          const views = viewsMatch ? viewsMatch[1] : "0 ditonton";
+          mappedVideos.push({
+            id: videoId,
+            duration: "Shorts",
+            views: views,
+            title: title,
+            channel: "Shorts",
+            time: "",
+            thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+          });
+        }
+      });
+    }
+  });
+  return mappedVideos;
+};
+
+const fetchSearchDataClient = async (query: string): Promise<{ items: VideoData[] }> => {
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    const contentType = res.headers.get("content-type");
+    
+    if (contentType && contentType.includes("text/html")) {
+      console.warn("Backend API not found, falling back to client-side proxy...");
+      const proxyRes = await fetch(`${CORS_PROXY}${encodeURIComponent(YOUTUBE_SEARCH_URL + encodeURIComponent(query))}`);
+      if (!proxyRes.ok) throw new Error("CORS Proxy failed");
+      const html = await proxyRes.text();
+      return { items: parseYouTubeHTML(html) };
+    }
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "Gagal mengambil data dari server");
+    }
+    
+    return await res.json();
+  } catch (err) {
+    console.warn("API/Proxy error, trying alternative proxy...", err);
+    try {
+      const proxyRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(YOUTUBE_SEARCH_URL + encodeURIComponent(query))}`);
+      if (!proxyRes.ok) throw new Error("Pencarian gagal, coba lagi nanti.");
+      const html = await proxyRes.text();
+      return { items: parseYouTubeHTML(html) };
+    } catch(e) {
+       console.error("All proxys failed", e);
+       throw e;
+    }
+  }
+};
+
 export function YouTubeV() {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [visibleCount, setVisibleCount] = useState(12);
@@ -137,22 +231,13 @@ export function YouTubeV() {
     setIsLoadingMusic(true);
     try {
       // Fetch concurrent dash data
-      const [trendRes, viralRes] = await Promise.all([
-        fetch(`/api/search?q=${encodeURIComponent("official music video indonesia terbaru trending")}`),
-        fetch(`/api/search?q=${encodeURIComponent("lagu indonesia viral tiktok terpopuler")}`)
+      const [trendDataRaw, viralDataRaw] = await Promise.all([
+        fetchSearchDataClient("official music video indonesia terbaru trending"),
+        fetchSearchDataClient("lagu indonesia viral tiktok terpopuler")
       ]);
       
-      let trendData = { items: [] };
-      let viralData = { items: [] };
-
-      if (trendRes.ok) {
-        const data = await trendRes.json();
-        trendData.items = (data.items || []).filter((item: VideoData) => item.duration !== "Shorts");
-      }
-      if (viralRes.ok) {
-        const data = await viralRes.json();
-        viralData.items = (data.items || []).filter((item: VideoData) => item.duration !== "Shorts");
-      }
+      const trendData = { items: (trendDataRaw.items || []).filter((item: VideoData) => item.duration !== "Shorts") };
+      const viralData = { items: (viralDataRaw.items || []).filter((item: VideoData) => item.duration !== "Shorts") };
 
       setTrendingMusic(trendData.items || []);
       setViralMusic(viralData.items || []);
@@ -182,10 +267,7 @@ export function YouTubeV() {
     
     setIsSearchingMusic(true);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(musicSearchQuery + " official audio")}`);
-      if (!res.ok) throw new Error("Gagal mengambil data pencarian musik");
-      
-      const data = await res.json();
+      const data = await fetchSearchDataClient(musicSearchQuery + " official audio");
       setSearchMusicResults((data.items || []).filter((item: VideoData) => item.duration !== "Shorts"));
     } catch (err) {
       console.error(err);
@@ -220,14 +302,7 @@ export function YouTubeV() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Gagal mengambil data dari server");
-      }
-      
-      const data = await res.json();
+      const data = await fetchSearchDataClient(query);
       
       if (data.items && data.items.length > 0) {
         setVideos(data.items.filter((item: VideoData) => item.duration !== "Shorts"));
@@ -266,8 +341,7 @@ export function YouTubeV() {
         if (relatedFilter === 'Terkait') query = activeVideo.title + " related";
         if (relatedFilter === 'Terbaru') query = activeVideo.channel + " terbaru 2026";
 
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
+        const data = await fetchSearchDataClient(query);
         setRelatedVideos((data.items || []).filter((item: VideoData) => item.duration !== "Shorts"));
         setVisibleRelatedCount(15);
       } catch (err) {
@@ -289,8 +363,7 @@ export function YouTubeV() {
     setIsFetchingMore(true);
     try {
       const randomQuery = ["music terbaru", "berita nasional", "gaming channel", "podcast menarik", "video lucu terkini", "trending populer"][Math.floor(Math.random() * 6)];
-      const res = await fetch(`/api/search?q=${encodeURIComponent(randomQuery)}`);
-      const data = await res.json();
+      const data = await fetchSearchDataClient(randomQuery);
       if (data.items && data.items.length > 0) {
          setVideos(prev => {
            const newVideos = data.items.filter((item: VideoData) => item.duration !== "Shorts");
