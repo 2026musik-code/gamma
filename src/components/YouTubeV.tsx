@@ -831,8 +831,8 @@ export function YouTubeV() {
 
       {/* Music Modal */}
       {showMusic && (
-        <div className="fixed inset-0 z-50 flex justify-center bg-black/60 backdrop-blur-2xl lg:p-6 p-0">
-          <div className="w-full max-w-[450px] lg:max-w-[1200px] flex flex-col relative h-[100dvh] lg:h-full bg-green-50 shadow-[0_0_100px_rgba(0,0,0,0.5)] lg:border border-green-200 overflow-hidden lg:rounded-[32px]">
+        <div className="fixed inset-0 z-50 flex justify-center bg-black/60 backdrop-blur-2xl md:p-6 p-0">
+          <div className="w-full max-w-[450px] md:max-w-[1200px] flex flex-col relative h-[100dvh] md:h-full bg-green-50 shadow-[0_0_100px_rgba(0,0,0,0.5)] md:border border-green-200 overflow-hidden md:rounded-[32px]">
             {!isMusicPlayerOpen ? (
               // BROWSE VIEW
               <div className="flex flex-col h-full w-full">
@@ -931,8 +931,8 @@ export function YouTubeV() {
 
                       {/* Viral List */}
                       <div className="mb-5 max-w-5xl mx-auto w-full">
-                        <h3 className="font-bold text-green-950 text-xl font-display mb-3 px-4 lg:px-0">Lagu Viral & Terpopuler</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 px-4 lg:px-0">
+                        <h3 className="font-bold text-green-950 text-xl font-display mb-3 px-4 md:px-0">Lagu Viral & Terpopuler</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 px-4 md:px-0">
                           {viralMusic.map((music, index) => (
                             <div 
                               key={music.id} 
@@ -1074,13 +1074,13 @@ export function YouTubeV() {
                 </div>
 
                 <div 
-                  className="flex flex-col lg:flex-row flex-1 overflow-y-auto no-scrollbar px-7 lg:px-12 pb-8 pt-4 lg:pt-12 z-10 gap-8 lg:gap-16 items-center lg:items-start justify-center max-w-7xl mx-auto w-full"
+                  className="flex flex-col md:flex-row flex-1 overflow-y-auto no-scrollbar px-7 md:px-12 pb-8 pt-4 md:pt-12 z-10 gap-8 md:gap-16 items-center md:items-start justify-center max-w-7xl mx-auto w-full"
                   onMouseMove={handleVolumeInteraction}
                   onTouchStart={handleVolumeInteraction}
                 >
-                  <div className="w-full lg:w-[440px] xl:w-[500px] flex flex-col shrink-0 mx-auto lg:mx-0">
+                  <div className="w-full md:w-[440px] xl:w-[500px] flex flex-col shrink-0 mx-auto md:mx-0">
                     {/* Visualizer / Poster */}
-                    <div className="w-full aspect-square shrink-0 rounded-[32px] overflow-hidden bg-green-200 shadow-[0_30px_60px_rgba(0,0,0,0.2)] mb-8 lg:mb-10 relative border border-green-300 group flex items-center justify-center">
+                    <div className="w-full aspect-square shrink-0 rounded-[32px] overflow-hidden bg-green-200 shadow-[0_30px_60px_rgba(0,0,0,0.2)] mb-8 md:mb-10 relative border border-green-300 group flex items-center justify-center">
                     {activeMusic && (
                       <img 
                         src={activeMusic.thumbnail} 
@@ -1207,7 +1207,7 @@ export function YouTubeV() {
                   </div>
 
                   {/* Queue / Up Next */}
-                  <div className="w-full lg:flex-1 lg:max-w-sm xl:max-w-md flex flex-col gap-1.5 mt-auto lg:mt-0 bg-green-200/50 lg:bg-green-100/30 p-3 lg:p-4 rounded-[24px] lg:rounded-[32px] border border-green-300/50 lg:border-green-300/30 backdrop-blur-md">
+                  <div className="w-full md:flex-1 md:max-w-sm xl:max-w-md flex flex-col gap-1.5 mt-auto md:mt-0 bg-green-200/50 md:bg-green-100/30 p-3 md:p-4 rounded-[24px] md:rounded-[32px] border border-green-300/50 md:border-green-300/30 backdrop-blur-md">
                     <h4 className="font-bold text-green-800 uppercase text-[10px] tracking-[0.15em] mb-0.5 px-2">Berikutnya</h4>
                     {musicList.slice(musicList.findIndex(m => m.id === activeMusic?.id) + 1, musicList.findIndex(m => m.id === activeMusic?.id) + 6).map((music) => (
                       <div 
