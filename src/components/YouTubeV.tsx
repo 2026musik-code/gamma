@@ -75,7 +75,6 @@ const parseYouTubeHTML = (html: string) => {
 
 const fetchSearchDataClient = async (query: string): Promise<{ items: VideoData[] }> => {
   try {
-    let html = "";
     try {
       // Try backend first
       const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
@@ -88,27 +87,44 @@ const fetchSearchDataClient = async (query: string): Promise<{ items: VideoData[
       console.warn("Backend API request failed (Network error or missing). Falling back to proxy...", e);
     }
 
+    const ytUrl = YOUTUBE_SEARCH_URL + encodeURIComponent(query);
+    let html = "";
+
     try {
-      // First proxy fallback
-      console.warn("Trying CORS Proxy...");
-      const proxyRes = await fetch(`${CORS_PROXY}${encodeURIComponent(YOUTUBE_SEARCH_URL + encodeURIComponent(query))}`);
-      if (proxyRes.ok) {
-        html = await proxyRes.text();
+      // Proxy 1: AllOrigins (using /get endpoint returns JSON, very reliable for CORS)
+      console.warn("Trying AllOrigins Proxy...");
+      const altRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ytUrl)}`);
+      if (!altRes.ok) throw new Error("AllOrigins failed");
+      const data = await altRes.json();
+      if (data && data.contents) {
+        html = data.contents;
       } else {
-         throw new Error("First proxy failed");
+        throw new Error("AllOrigins contents empty");
       }
-    } catch (proxyErr) {
-      console.warn("First proxy error, trying alternative proxy...", proxyErr);
-      // Alternative proxy fallback
-      const altRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(YOUTUBE_SEARCH_URL + encodeURIComponent(query))}`);
-      if (!altRes.ok) throw new Error("Pencarian gagal, server tidak merespon. Coba lagi nanti.");
-      html = await altRes.text();
+    } catch (proxyErr1) {
+      console.warn("AllOrigins error, trying CodeTabs proxy...", proxyErr1);
+      
+      try {
+        // Proxy 2: CodeTabs API
+        console.warn("Trying CodeTabs Proxy...");
+        const codeTabsRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(ytUrl)}`);
+        if (!codeTabsRes.ok) throw new Error("CodeTabs failed");
+        html = await codeTabsRes.text();
+      } catch (proxyErr2) {
+        console.warn("CodeTabs error, trying CORSProxy...", proxyErr2);
+        
+        // Proxy 3: CORSProxy.io
+        console.warn("Trying CORSProxy...");
+        const proxyRes = await fetch(`${CORS_PROXY}${encodeURIComponent(ytUrl)}`);
+        if (!proxyRes.ok) throw new Error("Semua proxy gagal merespon.");
+        html = await proxyRes.text();
+      }
     }
 
     return { items: parseYouTubeHTML(html) };
   } catch (err: any) {
     console.error("All search methods failed", err);
-    throw new Error(err.message || "Gagal mengambil data. Periksa koneksi internet Anda.");
+    throw new Error("Koneksi gagal. Coba matikan AdBlock, gunakan VPN, atau tunggu beberapa saat.");
   }
 };
 
