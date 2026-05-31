@@ -1037,7 +1037,6 @@ export function YouTubeV() {
                           setIsPlayingMusic(false);
                         }
                       }}
-                      className="w-full h-full absolute inset-0 pointer-events-none"
                       iframeClassName="w-full h-full object-cover scale-[1.3]" // Scale to hide borders
                     />
                     {!isPlayingMusic && (
