@@ -958,7 +958,32 @@ export function YouTubeV() {
                   <h2 className="text-xs font-bold tracking-[0.2em] text-green-800 uppercase text-center flex-1 font-display">
                     Sedang Diputar
                   </h2>
-                  <div className="w-12"></div> {/* Spacer for alignment */}
+                  
+                  {/* Volume Control Top Right */}
+                  <div className="relative flex items-center justify-end w-12 group" onMouseEnter={handleVolumeInteraction} onMouseLeave={() => setShowVolumeSlider(false)}>
+                    <button 
+                      onClick={() => {
+                        const newVol = volume === 0 ? 100 : 0;
+                        setVolume(newVol);
+                        if (musicPlayer && musicPlayer.setVolume) musicPlayer.setVolume(newVol);
+                      }}
+                      className="p-2 -mr-2 hover:bg-black/5 rounded-full text-green-950 transition-colors"
+                    >
+                      {volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+                    </button>
+                    
+                    {/* Volume Slider popup */}
+                    <div className={`absolute top-full -right-4 mt-1 p-4 bg-green-50/95 backdrop-blur-xl rounded-2xl shadow-xl border border-green-200 z-50 flex items-center justify-center w-12 h-32 transition-all duration-300 origin-top-right ${showVolumeSlider ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                       <input 
+                        type="range" 
+                        min="0" 
+                        max="100"
+                        value={volume}
+                        onChange={handleVolumeChange}
+                        className="w-24 -rotate-90 cursor-pointer accent-green-700 h-1.5 bg-green-200/80 rounded-full appearance-auto"
+                       />
+                    </div>
+                  </div>
                 </div>
 
                 <div 
@@ -1022,13 +1047,7 @@ export function YouTubeV() {
                     )}
                   </div>
 
-                  {/* Info */}
-                  <div className="flex flex-col mb-8 pointer-events-none text-center">
-                    <h3 className="text-[22px] font-bold text-green-950 line-clamp-2 leading-tight mb-2 font-display tracking-tight drop-shadow-sm">{activeMusic?.title}</h3>
-                    <p className="text-green-800 text-[16px] font-medium">{activeMusic?.channel}</p>
-                  </div>
-
-                  {/* Timeline / Progress Bar */}
+                  {/* Timeline / Progress Bar (Dipindah ke bawah poster, di atas info) */}
                   <div className="flex flex-col gap-1 mb-6 px-1">
                     <div className="flex items-center justify-between text-xs font-semibold text-green-800/80 font-mono tracking-wider mb-1">
                       <span>{formatTime(currentTime)}</span>
@@ -1042,6 +1061,12 @@ export function YouTubeV() {
                       onChange={handleSeek}
                       className="w-full cursor-pointer accent-green-700 hover:accent-green-800 transition-all focus:outline-none h-1.5 bg-green-200/50 rounded-full appearance-auto"
                     />
+                  </div>
+
+                  {/* Info (Dipindah ke bawah durasi) */}
+                  <div className="flex flex-col mb-8 pointer-events-none text-center">
+                    <h3 className="text-[22px] font-bold text-green-950 line-clamp-2 leading-tight mb-2 font-display tracking-tight drop-shadow-sm">{activeMusic?.title}</h3>
+                    <p className="text-green-800 text-[16px] font-medium">{activeMusic?.channel}</p>
                   </div>
                   
                   {/* Controls */}
@@ -1091,28 +1116,6 @@ export function YouTubeV() {
                     >
                       {repeatMode === 2 ? <Repeat1 className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}
                     </button>
-                  </div>
-
-                  {/* Volume Control */}
-                  <div className={`flex items-center gap-3 px-4 mb-4 transition-opacity duration-500 ${showVolumeSlider ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                    <button 
-                      onClick={() => {
-                        const newVol = volume === 0 ? 100 : 0;
-                        setVolume(newVol);
-                        if (musicPlayer && musicPlayer.setVolume) musicPlayer.setVolume(newVol);
-                      }}
-                      className="text-green-800/60 hover:text-green-800 transition-colors"
-                    >
-                      {volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                    </button>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100"
-                      value={volume}
-                      onChange={handleVolumeChange}
-                      className="w-full cursor-pointer accent-green-700 hover:accent-green-800 transition-all focus:outline-none h-1.5 bg-green-200/50 rounded-full appearance-auto"
-                    />
                   </div>
 
                   </div>
