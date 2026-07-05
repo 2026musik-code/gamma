@@ -75,48 +75,17 @@ const parseYouTubeHTML = (html: string) => {
 
 const fetchSearchDataClient = async (query: string): Promise<{ items: VideoData[] }> => {
   try {
-    try {
-      // Try backend first
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-      const contentType = res.headers.get("content-type");
-      
-      if (res.ok && contentType && contentType.includes("application/json")) {
-        return await res.json();
-      }
-    } catch (e) {
-      console.warn("Backend API request failed. Falling back to proxies...", e);
+    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    const contentType = res.headers.get("content-type");
+    
+    if (res.ok && contentType && contentType.includes("application/json")) {
+      return await res.json();
     }
-
-    const ytUrl = YOUTUBE_SEARCH_URL + encodeURIComponent(query);
-    console.warn("Menggunakan proxy untuk mempercepat pencarian...");
-
-    // Race the proxies using Promise.any. Whichever is fastest wins.
-    const html = await Promise.any([
-      fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ytUrl)}`)
-        .then(res => {
-          if (!res.ok) throw new Error("AllOrigins failed");
-          return res.json();
-        })
-        .then(data => {
-          if (data && data.contents) return data.contents as string;
-          throw new Error("AllOrigins contents empty");
-        }),
-      fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(ytUrl)}`)
-        .then(res => {
-          if (!res.ok) throw new Error("CodeTabs failed");
-          return res.text();
-        }),
-      fetch(`${CORS_PROXY}${encodeURIComponent(ytUrl)}`)
-        .then(res => {
-          if (!res.ok) throw new Error("CORSProxy failed");
-          return res.text();
-        })
-    ]);
-
-    return { items: parseYouTubeHTML(html) };
+    
+    throw new Error("Backend API tidak merespon format yang benar.");
   } catch (err: any) {
-    console.error("All search methods failed", err);
-    throw new Error("Koneksi gagal. Coba matikan AdBlock, gunakan VPN, atau tunggu beberapa saat.");
+    console.error("Search failed", err);
+    throw new Error("Koneksi gagal. Jika Anda menggunakan Cloudflare, pastikan Anda men-deploy backend (/api/search) atau Cloudflare Pages Function.");
   }
 };
 
