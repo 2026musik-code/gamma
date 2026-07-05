@@ -1,20 +1,15 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Deployment Guide (Cloudflare)
 
-# Run and deploy your AI Studio app
+## Opsi 1: Menggunakan Cloudflare Pages (Rekomendasi)
+Ini adalah cara terbaik untuk men-deploy aplikasi React (Vite).
+Jalankan perintah ini di terminal Anda:
+```bash
+npm run deploy:pages
+```
 
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/10fa9d5f-ee27-4645-9110-917256a9df7b
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Opsi 2: Menggunakan Cloudflare Workers
+Jika Anda benar-benar harus menggunakan Cloudflare Workers (dengan domain `.workers.dev`), jalankan perintah ini:
+```bash
+npm run deploy:worker
+```
+*(Catatan: Anda akan diminta untuk login ke akun Cloudflare Anda jika belum).*
