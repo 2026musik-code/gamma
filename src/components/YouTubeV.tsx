@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Menu, Mic, Bell, Video, CircleUser, Play, Home, Compass, PlaySquare, Clock, ThumbsUp, History, Loader2, ArrowLeft, MoreHorizontal, Share2, Download, ThumbsDown, ChevronDown, Music, Pause, SkipForward, SkipBack, Shuffle, Repeat, Repeat1, Volume2, VolumeX } from "lucide-react";
+import { Search, Menu, Mic, Bell, Video, CircleUser, Play, Home, Compass, PlaySquare, Clock, ThumbsUp, History, Loader2, ArrowLeft, MoreHorizontal, Share2, Download, ThumbsDown, ChevronDown, Music, Pause, SkipForward, SkipBack, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Code, Terminal, Check, Server, Globe, Copy } from "lucide-react";
 import YouTube, { YouTubeProps, YouTubePlayer } from "react-youtube";
 
 type VideoData = {
@@ -116,6 +116,9 @@ export function YouTubeV() {
   };
 
   const [showMusic, setShowMusic] = useState(false);
+  const [showApiDocs, setShowApiDocs] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedCurl, setCopiedCurl] = useState(false);
   const [musicSearchQuery, setMusicSearchQuery] = useState("");
   const [isMusicPlayerOpen, setIsMusicPlayerOpen] = useState(false);
   const [musicList, setMusicList] = useState<VideoData[]>([]);
@@ -270,6 +273,8 @@ export function YouTubeV() {
     setActiveVideo(null);
     setSearchQuery("");
     setShowMusic(false);
+    setShowApiDocs(item === "Open Request");
+    
     if (item === "Beranda") fetchVideos("indonesia trending");
     else if (item === "Eksplorasi") fetchVideos("eksplorasi terbaru");
     else if (item === "Subscription") fetchVideos("subscription feed trailer video youtube channel");
@@ -484,6 +489,7 @@ export function YouTubeV() {
                   <SidebarItem onClick={() => handleSidebarClick("Beranda")} icon={<Home className="w-5 h-5" />} label="Beranda" active={activeSidebarItem === "Beranda"} />
                   <SidebarItem onClick={() => handleSidebarClick("Eksplorasi")} icon={<Compass className="w-5 h-5" />} label="Eksplorasi" active={activeSidebarItem === "Eksplorasi"} />
                   <SidebarItem onClick={() => handleSidebarClick("Subscription")} icon={<PlaySquare className="w-5 h-5" />} label="Subscription" active={activeSidebarItem === "Subscription"} />
+                  <SidebarItem onClick={() => handleSidebarClick("Open Request")} icon={<Code className="w-5 h-5" />} label="Open Request" active={activeSidebarItem === "Open Request"} />
                   
                   <div className="my-3 border-t border-blue-200" />
                   
@@ -503,6 +509,7 @@ export function YouTubeV() {
             <SidebarItem onClick={() => handleSidebarClick("Beranda")} icon={<Home className="w-5 h-5" />} label="Beranda" active={activeSidebarItem === "Beranda"} />
             <SidebarItem onClick={() => handleSidebarClick("Eksplorasi")} icon={<Compass className="w-5 h-5" />} label="Eksplorasi" active={activeSidebarItem === "Eksplorasi"} />
             <SidebarItem onClick={() => handleSidebarClick("Subscription")} icon={<PlaySquare className="w-5 h-5" />} label="Subscription" active={activeSidebarItem === "Subscription"} />
+            <SidebarItem onClick={() => handleSidebarClick("Open Request")} icon={<Code className="w-5 h-5" />} label="Open Request" active={activeSidebarItem === "Open Request"} />
             
             <div className="my-3 border-t border-blue-200" />
             
@@ -514,14 +521,100 @@ export function YouTubeV() {
           <div className="py-2 flex flex-col items-center md:hidden gap-1">
              <MiniSidebarItem onClick={() => handleSidebarClick("Beranda")} icon={<Home className="w-6 h-6" />} label="Beranda" active={activeSidebarItem === "Beranda"} />
              <MiniSidebarItem onClick={() => handleSidebarClick("Shorts")} icon={<Compass className="w-6 h-6" />} label="Shorts" active={activeSidebarItem === "Shorts"} />
-             <MiniSidebarItem onClick={() => handleSidebarClick("Subs")} icon={<PlaySquare className="w-6 h-6" />} label="Subs" active={activeSidebarItem === "Subs"} />
+             <MiniSidebarItem onClick={() => handleSidebarClick("Open Request")} icon={<Code className="w-6 h-6" />} label="API" active={activeSidebarItem === "Open Request"} />
              <MiniSidebarItem onClick={() => handleSidebarClick("Koleksi")} icon={<History className="w-6 h-6" />} label="Koleksi" active={activeSidebarItem === "Koleksi"} />
           </div>
         </aside>
 
         {/* Main Content Area */}
         <main id="main-scroll-container" onScroll={handleScroll} className="flex-1 overflow-y-auto bg-blue-50 custom-scrollbar focus:outline-none" tabIndex={0}>
-          {activeVideo ? (
+          {showApiDocs ? (
+            <div className="p-6 sm:p-10 max-w-4xl mx-auto w-full">
+              <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-blue-100">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <Code className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-display font-bold text-blue-950 leading-tight">Open Request API</h2>
+                    <p className="text-blue-600 font-medium text-[15px]">Dokumentasi Endpoint</p>
+                  </div>
+                </div>
+                
+                <p className="text-blue-900/80 text-[16px] leading-relaxed mb-10">
+                  Anda dapat menggunakan URL aplikasi ini sebagai API Publik untuk mengambil hasil pencarian YouTube. Response dikembalikan dalam format <code className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-mono text-sm border border-blue-100">JSON</code>.
+                </p>
+
+                {/* API Endpoint Section */}
+                <div className="mb-10">
+                  <h3 className="font-bold text-blue-950 text-lg mb-4 flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-blue-500" /> Mode Permintaan (URL)
+                  </h3>
+                  <div className="relative group">
+                    <div className="bg-slate-900 rounded-xl p-5 pr-16 font-mono text-[14px] text-blue-300 border border-slate-800 shadow-inner overflow-x-auto whitespace-nowrap">
+                      <span className="text-blue-400">GET</span> <span className="text-slate-100">{window.location.origin}/api/search?q=</span><span className="text-yellow-300">{"{query}"}</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/api/search?q=test`);
+                        setCopiedUrl(true);
+                        setTimeout(() => setCopiedUrl(false), 2000);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-all"
+                    >
+                      {copiedUrl ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* cURL Section */}
+                <div className="mb-10">
+                  <h3 className="font-bold text-blue-950 text-lg mb-4 flex items-center gap-2">
+                    <Terminal className="w-5 h-5 text-indigo-500" /> Mode cURL
+                  </h3>
+                  <div className="relative group">
+                    <div className="bg-slate-900 rounded-xl p-5 pr-16 font-mono text-[14px] leading-relaxed text-slate-300 border border-slate-800 shadow-inner overflow-x-auto whitespace-pre">
+                      <span className="text-pink-400">curl</span> <span className="text-slate-400">-s</span> <span className="text-green-300">"{window.location.origin}/api/search?q=lagu+pop"</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(`curl -s "${window.location.origin}/api/search?q=lagu+pop"`);
+                        setCopiedCurl(true);
+                        setTimeout(() => setCopiedCurl(false), 2000);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-all"
+                    >
+                      {copiedCurl ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Response Example */}
+                <div>
+                  <h3 className="font-bold text-blue-950 text-lg mb-4 flex items-center gap-2">
+                    <Server className="w-5 h-5 text-emerald-500" /> Contoh Response (JSON)
+                  </h3>
+                  <div className="bg-slate-900 rounded-xl p-5 font-mono text-[13px] text-slate-300 border border-slate-800 shadow-inner overflow-x-auto">
+<pre className="text-blue-300">
+{`{
+  "items": [
+    {
+      "id": "dQw4w9WgXcQ",
+      "duration": "3:33",
+      "views": "1.5B views",
+      "title": "Rick Astley - Never Gonna Give You Up",
+      "channel": "Rick Astley",
+      "time": "14 years ago",
+      "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
+    }
+  ]
+}`}
+</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : activeVideo ? (
             // Video Player View
             <div className="flex flex-col lg:flex-row w-full max-w-[1700px] mx-auto p-0 sm:p-6 lg:p-8 gap-8">
               <div className="flex-1">
