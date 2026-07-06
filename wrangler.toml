@@ -1,4 +1,4 @@
-name = "youtube-v-app"
+name = "vyt"
 main = "src/worker.js"
 compatibility_date = "2024-03-20"
 
